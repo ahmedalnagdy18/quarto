@@ -1,0 +1,3 @@
+final dbUrl = "https://cfljrnxkwlocrgleolmq.supabase.co";
+final anonKey =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmbGpybnhrd2xvY3JnbGVvbG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNzgyODcsImV4cCI6MjA4MDg1NDI4N30.Oaqiq2CJWHl62uS3LUhk-RmcrQMUe81PJ2uqfx9XJFE";

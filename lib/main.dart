@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:quarto/core/consts/app_const.dart';
+import 'package:quarto/features/dashboard/presentation/screens/dashboard_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:window_manager/window_manager.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1️⃣ initialize Firebase
+  await Supabase.initialize(
+    url: dbUrl,
+    anonKey: anonKey,
+  );
+
+  // 2️⃣ initialize DI (GetIt)
+  // await init();
+
+  // لازم تستدعي init قبل تشغيل التطبيق
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1000, 700),
+    minimumSize: Size(950, 600), // 👈 هنا بتحدد أقل حجم ممكن
+    center: true,
+    backgroundColor: Colors.transparent,
+  );
+
+  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const DashboardPage(),
+    );
+  }
+}
