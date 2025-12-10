@@ -1,4 +1,3 @@
-// lib/models/room_model.dart
 class Room {
   final String id;
   final String name;
@@ -11,17 +10,21 @@ class Room {
     required this.name,
     required this.isOccupied,
     this.sessionStart,
-    this.hourlyRate = 100.0,
+    required this.hourlyRate,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) {
+    DateTime? parseNullable(dynamic v) {
+      if (v == null) return null;
+      if (v is DateTime) return v;
+      return DateTime.parse(v.toString());
+    }
+
     return Room(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      isOccupied: json['is_occupied'] as bool,
-      sessionStart: json['session_start'] != null
-          ? DateTime.parse(json['session_start'] as String)
-          : null,
+      id: json['id'].toString(),
+      name: json['name'] ?? 'Room',
+      isOccupied: (json['is_occupied'] == true),
+      sessionStart: parseNullable(json['session_start']),
       hourlyRate: (json['hourly_rate'] as num?)?.toDouble() ?? 100.0,
     );
   }
@@ -36,18 +39,23 @@ class Room {
     };
   }
 
-  // Calculate current session duration
+  // ---------- helpers ----------
   Duration get currentSessionDuration {
-    if (sessionStart == null || !isOccupied) {
-      return Duration.zero;
-    }
+    if (!isOccupied || sessionStart == null) return Duration.zero;
     return DateTime.now().difference(sessionStart!);
   }
 
-  // Calculate current cost
   double get currentSessionCost {
-    final duration = currentSessionDuration;
-    final hours = duration.inMinutes / 60.0;
+    final d = currentSessionDuration;
+    final hours = d.inMinutes / 60.0;
     return hours * hourlyRate;
+  }
+
+  String get sessionStartShort {
+    if (sessionStart == null) return '--';
+    final local = sessionStart!.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
   }
 }

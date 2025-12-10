@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,10 +44,7 @@ class DashboardPage extends StatelessWidget {
                         SizedBox(height: 12),
                         Text(
                           "5",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 30),
                         ),
                       ],
                     ),
@@ -56,10 +58,7 @@ class DashboardPage extends StatelessWidget {
                         SizedBox(height: 12),
                         Text(
                           "4",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 30),
                         ),
                       ],
                     ),
@@ -73,10 +72,7 @@ class DashboardPage extends StatelessWidget {
                         SizedBox(height: 12),
                         Text(
                           "360",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 30),
                         ),
                       ],
                     ),
@@ -172,20 +168,11 @@ class DashboardPage extends StatelessWidget {
                             style: TextStyle(color: Colors.white),
                           ),
                           SizedBox(height: 6),
-                          Text(
-                            "14:40",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          Text("14:40", style: TextStyle(color: Colors.white)),
                           SizedBox(height: 12),
-                          Text(
-                            "Timer",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          Text("Timer", style: TextStyle(color: Colors.white)),
                           SizedBox(height: 6),
-                          Text(
-                            "1h 40m",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          Text("1h 40m", style: TextStyle(color: Colors.white)),
                           SizedBox(height: 12),
                           Text(
                             "Today History",
@@ -252,29 +239,18 @@ Widget _cardWidget({required String title, required String status}) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(color: Colors.white),
-        ),
+        Text(title, style: TextStyle(color: Colors.white)),
         SizedBox(height: 6),
-        Text(
-          status,
-          style: TextStyle(
-            color: AppColors.statusFree,
-          ),
-        ),
+        Text(status, style: TextStyle(color: AppColors.statusFree)),
         SizedBox(height: 12),
         MaterialButton(
           shape: ContinuousRectangleBorder(
-            borderRadius: BorderRadiusGeometry.circular(12),
+            borderRadius: BorderRadius.circular(12),
           ),
           minWidth: 150,
           onPressed: () {},
           color: AppColors.primaryBlue,
-          child: Text(
-            "Start Session",
-            style: TextStyle(color: Colors.white),
-          ),
+          child: Text("Start Session", style: TextStyle(color: Colors.white)),
         ),
       ],
     ),
