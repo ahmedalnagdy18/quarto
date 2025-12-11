@@ -50,7 +50,7 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          // إعادة البناء للتحديث
+          // إعادة البناء للتحديث - لا حاجة لتغيير أي شيء، فقط إعادة build
         });
       }
     });
@@ -126,6 +126,7 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
             if (!widget.room.isOccupied)
               const SizedBox(height: 40)
             else ...[
+              // تظهر البيانات الحية فقط للغرف المشغولة
               StreamBuilder<int>(
                 stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
                 builder: (context, snapshot) {
@@ -187,6 +188,27 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
   }
 }
 
+// Stream Builder للغرفة المحددة في التفاصيل
+class _RoomDetailsStreamBuilder extends StatelessWidget {
+  final Room room;
+  final Widget Function(BuildContext, Room) builder;
+
+  const _RoomDetailsStreamBuilder({
+    required this.room,
+    required this.builder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<int>(
+      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+      builder: (context, snapshot) {
+        return builder(context, room);
+      },
+    );
+  }
+}
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -202,9 +224,8 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // DashboardCubit يعمل تلقائياً مع Stream، لا نحتاج لتحميله
-      // RoomsCubit نحتاج لتحميل الغرف فقط
-      context.read<RoomsCubit>().loadRooms();
+      context.read<DashboardCubit>().loadDashboardStats();
+      context.read<RoomsCubit>().loadRoomsAndStats();
     });
   }
 
@@ -244,7 +265,7 @@ class _DashboardPageState extends State<DashboardPage> {
       backgroundColor: AppColors.bgCard,
       body: RefreshIndicator(
         onRefresh: () async {
-          // DashboardCubit يتحدد تلقائياً مع Stream
+          await context.read<DashboardCubit>().loadDashboardStats();
           await context.read<RoomsCubit>().refresh();
           if (_selectedRoom != null) {
             await context.read<SessionHistoryCubit>().loadRoomHistory(
@@ -329,10 +350,8 @@ class _DashboardPageState extends State<DashboardPage> {
           const CircularProgressIndicator()
         else if (state is DashboardError)
           Text("Error", style: AppTexts.largeHeading)
-        else if (state is DashboardLoaded)
-          Text(value, style: AppTexts.largeHeading)
         else
-          const CircularProgressIndicator(), // الحالة الابتدائية
+          Text(value, style: AppTexts.largeHeading),
       ],
     );
   }
@@ -458,9 +477,9 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     }
 
-    return StreamBuilder<int>(
-      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-      builder: (context, snapshot) {
+    return _RoomDetailsStreamBuilder(
+      room: _selectedRoom!,
+      builder: (context, liveRoom) {
         return BlocBuilder<SessionHistoryCubit, SessionHistoryState>(
           builder: (context, state) {
             List<SessionHistory> history = [];
@@ -478,13 +497,13 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "${_selectedRoom!.name} - DETAILS",
+                    "${liveRoom.name} - DETAILS",
                     style: AppTexts.smallHeading,
                   ),
                   const SizedBox(height: 20),
 
                   // Current Session with live updates
-                  _buildLiveSessionInfo(_selectedRoom!),
+                  _buildLiveSessionInfo(liveRoom),
                   const SizedBox(height: 20),
 
                   // Today History
@@ -505,38 +524,43 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildLiveSessionInfo(Room room) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Current Session", style: AppTexts.meduimBody),
-        const SizedBox(height: 12),
-        Text("Start Time", style: AppTexts.smallBody),
-        const SizedBox(height: 6),
-        Text(
-          room.isOccupied
-              ? _formatTime(room.sessionStart)
-              : "No active session",
-          style: AppTexts.meduimBody,
-        ),
-        const SizedBox(height: 12),
-        Text("Timer", style: AppTexts.smallBody),
-        const SizedBox(height: 6),
-        Text(
-          room.isOccupied ? room.liveDuration : "0h 0m",
-          style: AppTexts.meduimBody,
-        ),
-        const SizedBox(height: 8),
-        if (room.isOccupied) ...[
-          Text("Current Cost", style: AppTexts.smallBody),
-          const SizedBox(height: 6),
-          Text(
-            "${room.calculatedCost.toStringAsFixed(0)} ₪",
-            style: AppTexts.meduimBody.copyWith(
-              color: AppColors.primaryBlue,
+    return StreamBuilder<int>(
+      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+      builder: (context, snapshot) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Current Session", style: AppTexts.meduimBody),
+            const SizedBox(height: 12),
+            Text("Start Time", style: AppTexts.smallBody),
+            const SizedBox(height: 6),
+            Text(
+              room.isOccupied
+                  ? _formatTime(room.sessionStart)
+                  : "No active session",
+              style: AppTexts.meduimBody,
             ),
-          ),
-        ],
-      ],
+            const SizedBox(height: 12),
+            Text("Timer", style: AppTexts.smallBody),
+            const SizedBox(height: 6),
+            Text(
+              room.isOccupied ? room.liveDuration : "0h 0m",
+              style: AppTexts.meduimBody,
+            ),
+            const SizedBox(height: 8),
+            if (room.isOccupied) ...[
+              Text("Current Cost", style: AppTexts.smallBody),
+              const SizedBox(height: 6),
+              Text(
+                "${room.calculatedCost.toStringAsFixed(0)} ₪",
+                style: AppTexts.meduimBody.copyWith(
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -559,43 +583,38 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHistoryTable(List<SessionHistory> history) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        dataTextStyle: const TextStyle(color: Colors.white),
-        headingTextStyle: const TextStyle(color: Colors.white),
-        border: TableBorder.all(color: AppColors.borderLight),
-        headingRowColor: MaterialStateProperty.all(AppColors.borderColor),
-        columnSpacing: 20,
-        horizontalMargin: 12,
-        columns: const [
-          DataColumn(label: Text("#")),
-          DataColumn(label: Text("Start")),
-          DataColumn(label: Text("End")),
-          DataColumn(label: Text("Duration")),
-          DataColumn(label: Text("Cost")),
-        ],
-        rows:
-            history.asMap().entries.map((entry) {
-              final index = entry.key;
-              final session = entry.value;
-              return DataRow(
-                cells: [
-                  DataCell(Text("${index + 1}")),
-                  DataCell(Text(session.startTimeShort ?? "--:--")),
-                  DataCell(
-                    Text(
-                      session.endTime != null
-                          ? (session.endTimeShort ?? "--:--")
-                          : "Running",
-                    ),
+    return DataTable(
+      dataTextStyle: const TextStyle(color: Colors.white),
+      headingTextStyle: const TextStyle(color: Colors.white),
+      border: TableBorder.all(color: AppColors.borderLight),
+      headingRowColor: MaterialStateProperty.all(AppColors.borderColor),
+      columnSpacing: 20,
+      horizontalMargin: 12,
+      columns: const [
+        DataColumn(label: Text("#")),
+        DataColumn(label: Text("Start")),
+        DataColumn(label: Text("End")),
+        DataColumn(label: Text("Duration")),
+        DataColumn(label: Text("Cost")),
+      ],
+      rows:
+          history.asMap().entries.map((entry) {
+            final index = entry.key;
+            final session = entry.value;
+            return DataRow(
+              cells: [
+                DataCell(Text("${index + 1}")),
+                DataCell(Text(session.startTimeShort)),
+                DataCell(
+                  Text(
+                    session.endTime != null ? session.endTimeShort : "Running",
                   ),
-                  DataCell(Text(session.formattedDuration ?? "--:--")),
-                  DataCell(Text("${session.totalCost.toStringAsFixed(0)} ₪")),
-                ],
-              );
-            }).toList(),
-      ),
+                ),
+                DataCell(Text(session.formattedDuration)),
+                DataCell(Text("${session.totalCost.toStringAsFixed(0)} ₪")),
+              ],
+            );
+          }).toList(),
     );
   }
 
@@ -611,7 +630,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("Total of day:", style: AppTexts.meduimHeading),
+          Text("Total of day:", style: AppTexts.meduimBody),
           Text(
             "${total.toStringAsFixed(0)} ₪",
             style: AppTexts.largeHeading.copyWith(color: AppColors.primaryBlue),

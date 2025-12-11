@@ -7,5 +7,5 @@ abstract class DashboardRepository {
   Future<void> startSession(String roomId);
   Future<void> endSession(String roomId);
   Future<List<SessionHistory>> getRoomHistoryToday(String roomId);
-  Stream<Map<String, dynamic>> getDashboardStats();
+  Future<Map<String, dynamic>> getDashboardStats();
 }

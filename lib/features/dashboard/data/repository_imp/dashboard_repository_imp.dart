@@ -20,45 +20,41 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Stream<Map<String, dynamic>> getDashboardStats() {
-    final roomsStream = supabase
-        .from('rooms')
-        .stream(primaryKey: ['id'])
-        .order('name')
-        .asyncMap((roomsSnapshot) async {
-          final rooms =
-              roomsSnapshot.map((json) => Room.fromJson(json)).toList();
-          final occupiedRooms = rooms.where((r) => r.isOccupied).length;
-          final freeRooms = rooms.length - occupiedRooms;
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final rooms = await getAllRooms();
+      final occupiedRooms = rooms.where((r) => r.isOccupied).length;
+      final freeRooms = rooms.length - occupiedRooms;
 
-          // دخل اليوم من session_history
-          final today = DateTime.now();
-          final startOfDay = DateTime(today.year, today.month, today.day);
+      // دخل اليوم من session_history
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
 
-          final incomeResponse = await supabase
-              .from('session_history')
-              .select('total_cost')
-              .gte('end_time', startOfDay.toIso8601String())
-              .not('end_time', 'is', null);
+      final incomeResponse = await supabase
+          .from('session_history')
+          .select('total_cost')
+          .gte('end_time', startOfDay.toIso8601String())
+          .not('end_time', 'is', null); // فقط الجلسات المنتهية
 
-          double todayIncome = 0;
-          for (var session in incomeResponse) {
-            final cost = session['total_cost'];
-            if (cost != null) {
-              todayIncome += (cost as num).toDouble();
-            }
-          }
+      double todayIncome = 0;
+      for (var session in incomeResponse) {
+        final cost = session['total_cost'];
+        if (cost != null) {
+          todayIncome += (cost as num).toDouble();
+        }
+      }
 
-          return {
-            'totalRooms': rooms.length,
-            'occupiedRooms': occupiedRooms,
-            'freeRooms': freeRooms,
-            'todayIncome': todayIncome,
-            'rooms': rooms,
-          };
-        });
-
-    return roomsStream;
+      return {
+        'totalRooms': rooms.length,
+        'occupiedRooms': occupiedRooms,
+        'freeRooms': freeRooms,
+        'todayIncome': todayIncome,
+        'rooms': rooms,
+      };
+    } catch (e) {
+      print('Error getting dashboard stats: $e');
+      rethrow;
+    }
   }
 
   @override

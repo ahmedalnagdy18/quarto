@@ -5,7 +5,7 @@ class GetDashboardStatsUsecase {
 
   GetDashboardStatsUsecase({required this.repository});
 
-  Stream<Map<String, dynamic>> call() {
+  Future<Map<String, dynamic>> call() async {
     return repository.getDashboardStats();
   }
 }

@@ -4,12 +4,14 @@ import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_all_rooms_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/start_session_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/end_session_usecase.dart';
 
 part 'rooms_state.dart';
 
 class RoomsCubit extends Cubit<RoomsState> {
+  final GetDashboardStatsUsecase getDashboardStatsUsecase;
   final GetAllRoomsUsecase getAllRoomsUsecase;
   final StartSessionUsecase startSessionUsecase;
   final EndSessionUsecase endSessionUsecase;
@@ -18,10 +20,12 @@ class RoomsCubit extends Cubit<RoomsState> {
   bool _isStreamActive = false;
 
   RoomsCubit({
+    required this.getDashboardStatsUsecase,
     required this.getAllRoomsUsecase,
     required this.startSessionUsecase,
     required this.endSessionUsecase,
   }) : super(RoomsInitial()) {
+    // بدء التايمر بمجرد إنشاء الكيوبت
     _startUpdateTimer();
   }
 
@@ -35,6 +39,7 @@ class RoomsCubit extends Cubit<RoomsState> {
     if (_isStreamActive) return;
 
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // تحديث حالة الغرف المشغولة فقط
       if (state is RoomsLoaded) {
         _updateOccupiedRooms();
       }
@@ -54,6 +59,7 @@ class RoomsCubit extends Cubit<RoomsState> {
     final currentState = state as RoomsLoaded;
     final updatedRooms =
         currentState.rooms.map((room) {
+          // إذا كانت الغرفة مشغولة، نعيد إنشاؤها لتحريك التايمر
           if (room.isOccupied && room.sessionStart != null) {
             return Room(
               id: room.id,
@@ -69,11 +75,16 @@ class RoomsCubit extends Cubit<RoomsState> {
     emit(currentState.copyWith(rooms: updatedRooms));
   }
 
-  Future<void> loadRooms() async {
+  Future<void> loadRoomsAndStats() async {
     emit(RoomsLoading());
     try {
-      final rooms = await getAllRoomsUsecase();
-      emit(RoomsLoaded(rooms: rooms));
+      final stats = await getDashboardStatsUsecase();
+      emit(
+        RoomsLoaded(
+          rooms: stats['rooms'] as List<Room>,
+          stats: stats,
+        ),
+      );
     } catch (e) {
       emit(RoomsError(e.toString()));
     }
@@ -82,7 +93,7 @@ class RoomsCubit extends Cubit<RoomsState> {
   Future<void> startSession(String roomId) async {
     try {
       await startSessionUsecase(roomId: roomId);
-      await loadRooms(); // إعادة تحميل الغرف بعد البدء
+      await loadRoomsAndStats();
     } catch (e) {
       emit(RoomsError(e.toString()));
     }
@@ -91,13 +102,13 @@ class RoomsCubit extends Cubit<RoomsState> {
   Future<void> endSession(String roomId) async {
     try {
       await endSessionUsecase(roomId: roomId);
-      await loadRooms(); // إعادة تحميل الغرف بعد الانتهاء
+      await loadRoomsAndStats();
     } catch (e) {
       emit(RoomsError(e.toString()));
     }
   }
 
   Future<void> refresh() async {
-    await loadRooms();
+    await loadRoomsAndStats();
   }
 }

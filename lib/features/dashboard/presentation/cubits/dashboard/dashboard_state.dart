@@ -1,4 +1,3 @@
-// lib/features/dashboard/presentation/cubits/dashboard/dashboard_state.dart
 part of 'dashboard_cubit.dart';
 
 @immutable

@@ -10,14 +10,20 @@ class RoomsLoading extends RoomsState {}
 
 class RoomsLoaded extends RoomsState {
   final List<Room> rooms;
+  final Map<String, dynamic> stats;
 
-  RoomsLoaded({required this.rooms});
+  RoomsLoaded({
+    required this.rooms,
+    required this.stats,
+  });
 
   RoomsLoaded copyWith({
     List<Room>? rooms,
+    Map<String, dynamic>? stats,
   }) {
     return RoomsLoaded(
       rooms: rooms ?? this.rooms,
+      stats: stats ?? this.stats,
     );
   }
 }
