@@ -1,3 +1,4 @@
+// lib/features/dashboard/presentation/cubits/rooms/rooms_state.dart
 part of 'rooms_cubit.dart';
 
 @immutable
@@ -9,17 +10,26 @@ class RoomsLoading extends RoomsState {}
 
 class RoomsLoaded extends RoomsState {
   final List<Room> rooms;
-  RoomsLoaded(this.rooms);
-}
+  final Map<String, dynamic> stats;
 
-class RoomLoading extends RoomsState {}
+  RoomsLoaded({
+    required this.rooms,
+    required this.stats,
+  });
 
-class RoomLoaded extends RoomsState {
-  final Room room;
-  RoomLoaded(this.room);
+  RoomsLoaded copyWith({
+    List<Room>? rooms,
+    Map<String, dynamic>? stats,
+  }) {
+    return RoomsLoaded(
+      rooms: rooms ?? this.rooms,
+      stats: stats ?? this.stats,
+    );
+  }
 }
 
 class RoomsError extends RoomsState {
   final String message;
+
   RoomsError(this.message);
 }

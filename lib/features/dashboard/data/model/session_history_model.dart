@@ -16,14 +16,15 @@ class SessionHistory {
   });
 
   factory SessionHistory.fromJson(Map<String, dynamic> json) {
-    // Supabase may return Timestamp objects or ISO strings depending on client,
-    // so be defensive: if it's already a DateTime keep it, else parse string.
     DateTime parseTime(dynamic value) {
       if (value == null) throw Exception('Null timestamp');
       if (value is DateTime) return value;
-      if (value is String) return DateTime.parse(value);
-      // Supabase sometimes returns Map like {"_isUtc":..., "value":...}, but usually String.
-      return DateTime.parse(value.toString());
+      if (value is String) {
+        // تحليل الوقت من Supabase (يكون في UTC)
+        final parsed = DateTime.parse(value);
+        return parsed.toLocal(); // تحويل للوقت المحلي للعرض
+      }
+      return DateTime.parse(value.toString()).toLocal();
     }
 
     return SessionHistory(
@@ -36,45 +37,45 @@ class SessionHistory {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'room_id': roomId,
-      'start_time': startTime.toIso8601String(),
-      'end_time': endTime?.toIso8601String(),
-      'hourly_rate': hourlyRate,
-      'total_cost': totalCost,
-    };
+  // تنسيق وقت البداية
+  String get startTimeShort {
+    final local = startTime; // بالفعل محول للوقت المحلي
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
   }
 
-  // Duration (running if endTime == null)
-  Duration get duration {
-    final end = endTime ?? DateTime.now();
-    return end.difference(startTime);
+  // تنسيق وقت النهاية
+  String get endTimeShort {
+    if (endTime == null) return 'Running';
+    final local = endTime!; // بالفعل محول للوقت المحلي
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
   }
 
   String get formattedDuration {
-    final d = duration;
-    final h = d.inHours;
-    final m = d.inMinutes % 60;
-    if (h > 0) return '${h}h ${m}m';
-    return '${m}m';
+    if (endTime == null) return 'Running';
+
+    final duration = endTime!.difference(startTime);
+
+    // التحقق من أن المدة غير سلبية
+    if (duration.isNegative) {
+      return '0m';
+    }
+
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
   }
 
-  // Short time like "14:05"
-  String get startTimeShort {
-    final local = startTime.toLocal();
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
-  }
-
-  // If still running show 'running' or time
-  String get endTimeShort {
-    if (endTime == null) return 'running';
-    final local = endTime!.toLocal();
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
+  // تصحيح formattedCost
+  String get formattedCost {
+    return '${totalCost.toStringAsFixed(0)} ₪';
   }
 }

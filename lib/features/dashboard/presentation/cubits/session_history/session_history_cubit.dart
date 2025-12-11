@@ -8,8 +8,9 @@ part 'session_history_state.dart';
 class SessionHistoryCubit extends Cubit<SessionHistoryState> {
   final GetRoomHistoryUsecase getRoomHistoryUsecase;
 
-  SessionHistoryCubit({required this.getRoomHistoryUsecase})
-    : super(SessionHistoryInitial());
+  SessionHistoryCubit({
+    required this.getRoomHistoryUsecase,
+  }) : super(SessionHistoryInitial());
 
   Future<void> loadRoomHistory(String roomId) async {
     emit(SessionHistoryLoading());

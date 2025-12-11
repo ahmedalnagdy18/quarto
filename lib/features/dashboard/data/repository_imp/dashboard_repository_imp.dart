@@ -10,113 +10,195 @@ class DashboardRepositoryImp implements DashboardRepository {
 
   @override
   Future<List<Room>> getAllRooms() async {
-    final response = await supabase.from('rooms').select().order('name');
-
-    return (response as List).map((json) => Room.fromJson(json)).toList();
+    try {
+      final response = await supabase.from('rooms').select().order('name');
+      return (response as List).map((json) => Room.fromJson(json)).toList();
+    } catch (e) {
+      print('Error getting rooms: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<Map<String, dynamic>> getDashboardStats() async {
-    final rooms = await getAllRooms();
+    try {
+      final rooms = await getAllRooms();
+      final occupiedRooms = rooms.where((r) => r.isOccupied).length;
+      final freeRooms = rooms.length - occupiedRooms;
 
-    final occupied = rooms.where((r) => r.isOccupied).length;
+      // دخل اليوم من session_history
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
 
-    // Today income
-    final today = DateTime.now();
-    final start =
-        DateTime(today.year, today.month, today.day).toIso8601String();
+      final incomeResponse = await supabase
+          .from('session_history')
+          .select('total_cost')
+          .gte('end_time', startOfDay.toIso8601String())
+          .not('end_time', 'is', null); // فقط الجلسات المنتهية
 
-    final incomeResponse = await supabase
-        .from('session_history')
-        .select('total_cost')
-        .gte('end_time', start);
+      double todayIncome = 0;
+      for (var session in incomeResponse) {
+        final cost = session['total_cost'];
+        if (cost != null) {
+          todayIncome += (cost as num).toDouble();
+        }
+      }
 
-    double income = 0;
-    for (var s in incomeResponse) {
-      income += (s['total_cost'] as num).toDouble();
+      return {
+        'totalRooms': rooms.length,
+        'occupiedRooms': occupiedRooms,
+        'freeRooms': freeRooms,
+        'todayIncome': todayIncome,
+        'rooms': rooms,
+      };
+    } catch (e) {
+      print('Error getting dashboard stats: $e');
+      rethrow;
     }
-
-    return {
-      'totalRooms': rooms.length,
-      'occupiedRooms': occupied,
-      'freeRooms': rooms.length - occupied,
-      'todayIncome': income,
-      'rooms': rooms,
-    };
   }
 
   @override
   Future<Room> getRoom(String roomId) async {
-    final response =
-        await supabase.from('rooms').select().eq('id', roomId).single();
-
-    return Room.fromJson(response);
+    try {
+      final response =
+          await supabase.from('rooms').select().eq('id', roomId).single();
+      return Room.fromJson(response);
+    } catch (e) {
+      print('Error getting room: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<List<SessionHistory>> getRoomHistoryToday(String roomId) async {
-    final today = DateTime.now();
-    final start =
-        DateTime(today.year, today.month, today.day).toIso8601String();
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
 
-    final response = await supabase
-        .from('session_history')
-        .select()
-        .eq('room_id', roomId)
-        .gte('start_time', start)
-        .order('start_time', ascending: false);
+      final response = await supabase
+          .from('session_history')
+          .select()
+          .eq('room_id', roomId)
+          .gte('start_time', startOfDay.toIso8601String())
+          .order('start_time', ascending: false);
 
-    return (response as List)
-        .map((json) => SessionHistory.fromJson(json))
-        .toList();
+      return (response as List)
+          .map((json) => SessionHistory.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error getting room history: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> startSession(String roomId) async {
-    final now = DateTime.now().toIso8601String();
+    try {
+      final now = DateTime.now().toUtc(); // استخدام UTC
 
-    // Update room status
-    await supabase
-        .from('rooms')
-        .update({'is_occupied': true, 'session_start': now})
-        .eq('id', roomId);
+      // الحصول على بيانات الغرفة لمعرفة سعر الساعة
+      final room = await getRoom(roomId);
 
-    // Insert session history
-    final room = await getRoom(roomId);
+      // تحديث حالة الغرفة
+      await supabase
+          .from('rooms')
+          .update({
+            'is_occupied': true,
+            'session_start': now.toIso8601String(), // تأكد أنه ISO String
+            'updated_at': now.toIso8601String(),
+          })
+          .eq('id', roomId);
 
-    await supabase.from('session_history').insert({
-      'room_id': roomId,
-      'start_time': now,
-      'hourly_rate': room.hourlyRate,
-      'total_cost': 0.0,
-    });
+      // إضافة جلسة جديدة مع سعر الساعة الخاص بالغرفة
+      await supabase.from('session_history').insert({
+        'room_id': roomId,
+        'start_time': now.toIso8601String(), // ISO String
+        'hourly_rate': room.hourlyRate,
+        'total_cost': 0.0,
+        'created_at': now.toIso8601String(),
+      });
+    } catch (e) {
+      print('Error starting session: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> endSession(String roomId) async {
-    final room = await getRoom(roomId);
-    final now = DateTime.now().toIso8601String();
+    try {
+      final now = DateTime.now().toUtc(); // استخدام UTC
 
-    final cost = room.currentSessionCost;
+      // الحصول على بيانات الغرفة
+      final room = await getRoom(roomId);
 
-    await supabase
-        .from('rooms')
-        .update({'is_occupied': false, 'session_start': null})
-        .eq('id', roomId);
+      if (room.sessionStart == null) {
+        throw Exception('No active session found for room $roomId');
+      }
 
-    // Get latest session
-    final session =
+      // تحويل sessionStart إلى UTC للتأكد
+      final sessionStartUtc = room.sessionStart!.toUtc();
+
+      // التحقق من أن وقت البداية ليس في المستقبل
+      if (sessionStartUtc.isAfter(now)) {
+        // إذا كان وقت البداية في المستقبل، نستخدم وقت الآن
+        final duration = Duration.zero;
+        final hours = duration.inMinutes / 60.0;
+        final totalCost = 0.0;
+      } else {
+        // حساب المدة بشكل صحيح
+        final duration = now.difference(sessionStartUtc);
+        final hours = duration.inMinutes / 60.0;
+        final totalCost = (hours * room.hourlyRate);
+
+        // تحديث حالة الغرفة
+        await supabase
+            .from('rooms')
+            .update({
+              'is_occupied': false,
+              'session_start': null,
+              'updated_at': now.toIso8601String(),
+            })
+            .eq('id', roomId);
+
+        // البحث عن الجلسة النشطة
+        final activeSession = await _getActiveSession(roomId);
+
+        if (activeSession == null) {
+          throw Exception('No active session found in database');
+        }
+
+        // تحديث الجلسة
         await supabase
             .from('session_history')
-            .select()
-            .eq('room_id', roomId)
-            .order('start_time', ascending: false)
-            .limit(1)
-            .single();
+            .update({
+              'end_time': now.toIso8601String(),
+              'total_cost': totalCost,
+            })
+            .eq('id', activeSession['id']);
+      }
+    } catch (e) {
+      print('Error ending session: $e');
+      rethrow;
+    }
+  }
 
-    await supabase
-        .from('session_history')
-        .update({'end_time': now, 'total_cost': cost})
-        .eq('id', session['id']);
+  // دالة مساعدة للحصول على الجلسة النشطة
+  Future<Map<String, dynamic>?> _getActiveSession(String roomId) async {
+    try {
+      final response =
+          await supabase
+              .from('session_history')
+              .select()
+              .eq('room_id', roomId)
+              .filter('end_time', 'is', null) // البحث عن الجلسات النشطة
+              .order('start_time', ascending: false)
+              .limit(1)
+              .maybeSingle();
+
+      return response;
+    } catch (e) {
+      print('Error getting active session: $e');
+      return null;
+    }
   }
 }

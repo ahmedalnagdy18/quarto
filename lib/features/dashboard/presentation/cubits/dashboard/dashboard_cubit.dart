@@ -7,14 +7,21 @@ part 'dashboard_state.dart';
 class DashboardCubit extends Cubit<DashboardState> {
   final GetDashboardStatsUsecase getDashboardStatsUsecase;
 
-  DashboardCubit({required this.getDashboardStatsUsecase})
-    : super(DashboardInitial());
+  DashboardCubit({
+    required this.getDashboardStatsUsecase,
+  }) : super(DashboardInitial());
 
   Future<void> loadDashboardStats() async {
     emit(DashboardLoading());
     try {
       final stats = await getDashboardStatsUsecase();
-      emit(DashboardLoaded(stats));
+      emit(
+        DashboardLoaded(
+          totalFreeRooms: stats['freeRooms'] as int? ?? 0,
+          totalOccupiedRooms: stats['occupiedRooms'] as int? ?? 0,
+          todayIncome: stats['todayIncome'] as double? ?? 0.0,
+        ),
+      );
     } catch (e) {
       emit(DashboardError(e.toString()));
     }

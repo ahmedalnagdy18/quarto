@@ -8,11 +8,19 @@ class DashboardInitial extends DashboardState {}
 class DashboardLoading extends DashboardState {}
 
 class DashboardLoaded extends DashboardState {
-  final Map<String, dynamic> stats;
-  DashboardLoaded(this.stats);
+  final int totalFreeRooms;
+  final int totalOccupiedRooms;
+  final double todayIncome;
+
+  DashboardLoaded({
+    required this.totalFreeRooms,
+    required this.totalOccupiedRooms,
+    required this.todayIncome,
+  });
 }
 
 class DashboardError extends DashboardState {
   final String message;
+
   DashboardError(this.message);
 }
