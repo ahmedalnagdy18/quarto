@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/consts/app_const.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/dashboard_page.dart';
+import 'package:quarto/injection_container.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -14,7 +19,7 @@ void main() async {
   );
 
   // 2️⃣ initialize DI (GetIt)
-  // await init();
+  await init();
 
   // لازم تستدعي init قبل تشغيل التطبيق
   await windowManager.ensureInitialized();
@@ -39,9 +44,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const DashboardPage(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create:
+              (context) => DashboardCubit(
+                getDashboardStatsUsecase: sl(),
+              ),
+        ),
+        BlocProvider(
+          create:
+              (context) => SessionHistoryCubit(
+                getRoomHistoryUsecase: sl(),
+              ),
+        ),
+
+        BlocProvider(
+          create:
+              (context) => RoomsCubit(
+                getAllRoomsUsecase: sl(),
+                getRoomUsecase: sl(),
+                endSessionUsecase: sl(),
+                startSessionUsecase: sl(),
+              ),
+        ),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: const DashboardPage(),
+      ),
     );
   }
 }

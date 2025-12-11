@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -9,6 +13,13 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<DashboardCubit>().loadDashboardStats();
+    context.read<RoomsCubit>().loadRooms();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,7 +33,6 @@ class _DashboardPageState extends State<DashboardPage> {
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
-                  vertical: 30,
                 ),
                 height: 140,
                 width: double.infinity,
@@ -35,44 +45,47 @@ class _DashboardPageState extends State<DashboardPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           "Total Free Rooms",
-                          style: TextStyle(color: Colors.white),
+                          style: AppTexts.smallHeading,
                         ),
                         SizedBox(height: 12),
                         Text(
                           "5",
-                          style: TextStyle(color: Colors.white, fontSize: 30),
+                          style: AppTexts.largeHeading,
                         ),
                       ],
                     ),
                     Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           "Total Occupied Rooms",
-                          style: TextStyle(color: Colors.white),
+                          style: AppTexts.smallHeading,
                         ),
                         SizedBox(height: 12),
                         Text(
                           "4",
-                          style: TextStyle(color: Colors.white, fontSize: 30),
+                          style: AppTexts.largeHeading,
                         ),
                       ],
                     ),
                     Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           "Today Incomes",
-                          style: TextStyle(color: Colors.white),
+                          style: AppTexts.smallHeading,
                         ),
                         SizedBox(height: 12),
                         Text(
                           "360",
-                          style: TextStyle(color: Colors.white, fontSize: 30),
+                          style: AppTexts.largeHeading,
                         ),
                       ],
                     ),
@@ -85,7 +98,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    // flex: 2,
                     child: Container(
                       padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -103,15 +115,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                 children: [
                                   Text(
                                     "Today",
-                                    style: TextStyle(color: Colors.white),
+                                    style: AppTexts.meduimBody,
                                   ),
                                   Text(
                                     "Yasterday",
-                                    style: TextStyle(color: Colors.white),
+                                    style: AppTexts.meduimBody,
                                   ),
                                   Text(
                                     "Custom Date",
-                                    style: TextStyle(color: Colors.white),
+                                    style: AppTexts.meduimBody,
                                   ),
                                 ],
                               ),
@@ -126,10 +138,16 @@ class _DashboardPageState extends State<DashboardPage> {
                                 children: [
                                   // card items
                                   _cardWidget(status: "Free", title: "Room1"),
-                                  _cardWidget(status: "Free", title: "Room2"),
+                                  _cardWidget(
+                                    status: "Occupied",
+                                    title: "Room2",
+                                  ),
                                   _cardWidget(status: "Free", title: "Room3"),
                                   _cardWidget(status: "Free", title: "Room4"),
-                                  _cardWidget(status: "Free", title: "Room5"),
+                                  _cardWidget(
+                                    status: "Occupied",
+                                    title: "Room5",
+                                  ),
                                   _cardWidget(status: "Free", title: "Room6"),
                                   _cardWidget(status: "Free", title: "Room7"),
                                   _cardWidget(status: "Free", title: "Room8"),
@@ -155,30 +173,30 @@ class _DashboardPageState extends State<DashboardPage> {
                         children: [
                           Text(
                             "Room 3 - Details",
-                            style: TextStyle(color: Colors.white),
+                            style: AppTexts.smallHeading,
                           ),
                           SizedBox(height: 20),
                           Text(
                             "Current Session",
-                            style: TextStyle(color: Colors.white),
+                            style: AppTexts.meduimBody,
                           ),
                           SizedBox(height: 12),
                           Text(
                             "Start Time",
-                            style: TextStyle(color: Colors.white),
+                            style: AppTexts.smallBody,
                           ),
                           SizedBox(height: 6),
-                          Text("14:40", style: TextStyle(color: Colors.white)),
+                          Text("14:40", style: AppTexts.meduimBody),
                           SizedBox(height: 12),
-                          Text("Timer", style: TextStyle(color: Colors.white)),
+                          Text("Timer", style: AppTexts.smallBody),
                           SizedBox(height: 6),
-                          Text("1h 40m", style: TextStyle(color: Colors.white)),
-                          SizedBox(height: 12),
+                          Text("1h 40m", style: AppTexts.meduimBody),
+                          SizedBox(height: 20),
                           Text(
                             "Today History",
-                            style: TextStyle(color: Colors.white),
+                            style: AppTexts.meduimBody,
                           ),
-                          SizedBox(height: 20),
+                          SizedBox(height: 12),
                           // Table
                           DataTable(
                             dataTextStyle: TextStyle(color: Colors.white),
@@ -239,9 +257,25 @@ Widget _cardWidget({required String title, required String status}) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(color: Colors.white)),
-        SizedBox(height: 6),
-        Text(status, style: TextStyle(color: AppColors.statusFree)),
+        Text(title, style: AppTexts.smallHeading),
+        SizedBox(height: 4),
+        Text(
+          status,
+          style: AppTexts.meduimBody.copyWith(
+            color:
+                status == "Occupied" ? Colors.deepOrange : AppColors.statusFree,
+          ),
+        ),
+        if (status == "Free") ...[SizedBox(height: 40)],
+        if (status == "Occupied") ...[
+          SizedBox(height: 8),
+          Text("Start: 14:10", style: AppTexts.smallBody),
+          SizedBox(height: 4),
+          Text("Live Duration 1h 10m", style: AppTexts.smallBody),
+          SizedBox(height: 4),
+          Text("Current Cost 110", style: AppTexts.smallBody),
+        ],
+
         SizedBox(height: 12),
         MaterialButton(
           shape: ContinuousRectangleBorder(
@@ -249,8 +283,11 @@ Widget _cardWidget({required String title, required String status}) {
           ),
           minWidth: 150,
           onPressed: () {},
-          color: AppColors.primaryBlue,
-          child: Text("Start Session", style: TextStyle(color: Colors.white)),
+          color: status == "Occupied" ? Colors.red : AppColors.primaryBlue,
+          child: Text(
+            status == "Occupied" ? "End Session" : "Start Session",
+            style: AppTexts.smallBody,
+          ),
         ),
       ],
     ),
