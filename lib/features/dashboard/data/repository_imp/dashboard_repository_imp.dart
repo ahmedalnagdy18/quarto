@@ -20,41 +20,45 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> getDashboardStats() async {
-    try {
-      final rooms = await getAllRooms();
-      final occupiedRooms = rooms.where((r) => r.isOccupied).length;
-      final freeRooms = rooms.length - occupiedRooms;
+  Stream<Map<String, dynamic>> getDashboardStats() {
+    final roomsStream = supabase
+        .from('rooms')
+        .stream(primaryKey: ['id'])
+        .order('name')
+        .asyncMap((roomsSnapshot) async {
+          final rooms =
+              roomsSnapshot.map((json) => Room.fromJson(json)).toList();
+          final occupiedRooms = rooms.where((r) => r.isOccupied).length;
+          final freeRooms = rooms.length - occupiedRooms;
 
-      // دخل اليوم من session_history
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
+          // دخل اليوم من session_history
+          final today = DateTime.now();
+          final startOfDay = DateTime(today.year, today.month, today.day);
 
-      final incomeResponse = await supabase
-          .from('session_history')
-          .select('total_cost')
-          .gte('end_time', startOfDay.toIso8601String())
-          .not('end_time', 'is', null); // فقط الجلسات المنتهية
+          final incomeResponse = await supabase
+              .from('session_history')
+              .select('total_cost')
+              .gte('end_time', startOfDay.toIso8601String())
+              .not('end_time', 'is', null);
 
-      double todayIncome = 0;
-      for (var session in incomeResponse) {
-        final cost = session['total_cost'];
-        if (cost != null) {
-          todayIncome += (cost as num).toDouble();
-        }
-      }
+          double todayIncome = 0;
+          for (var session in incomeResponse) {
+            final cost = session['total_cost'];
+            if (cost != null) {
+              todayIncome += (cost as num).toDouble();
+            }
+          }
 
-      return {
-        'totalRooms': rooms.length,
-        'occupiedRooms': occupiedRooms,
-        'freeRooms': freeRooms,
-        'todayIncome': todayIncome,
-        'rooms': rooms,
-      };
-    } catch (e) {
-      print('Error getting dashboard stats: $e');
-      rethrow;
-    }
+          return {
+            'totalRooms': rooms.length,
+            'occupiedRooms': occupiedRooms,
+            'freeRooms': freeRooms,
+            'todayIncome': todayIncome,
+            'rooms': rooms,
+          };
+        });
+
+    return roomsStream;
   }
 
   @override
@@ -141,9 +145,6 @@ class DashboardRepositoryImp implements DashboardRepository {
       // التحقق من أن وقت البداية ليس في المستقبل
       if (sessionStartUtc.isAfter(now)) {
         // إذا كان وقت البداية في المستقبل، نستخدم وقت الآن
-        final duration = Duration.zero;
-        final hours = duration.inMinutes / 60.0;
-        final totalCost = 0.0;
       } else {
         // حساب المدة بشكل صحيح
         final duration = now.difference(sessionStartUtc);

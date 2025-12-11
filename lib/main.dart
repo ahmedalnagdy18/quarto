@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create:
               (context) => DashboardCubit(
-                getDashboardStatsUsecase: sl(),
+                repository: sl(),
               ),
         ),
         BlocProvider(
@@ -62,7 +62,6 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create:
               (context) => RoomsCubit(
-                getDashboardStatsUsecase: sl(),
                 getAllRoomsUsecase: sl(),
                 endSessionUsecase: sl(),
                 startSessionUsecase: sl(),
