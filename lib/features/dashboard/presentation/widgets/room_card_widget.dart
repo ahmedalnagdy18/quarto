@@ -4,19 +4,27 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/session_type_dialog.dart';
 
 class RoomCardWidget extends StatefulWidget {
   final Room room;
   final bool isSelected;
   final VoidCallback onTap;
-  final VoidCallback onToggleStatus;
+  final Function({
+    String? psType,
+    bool? isMulti,
+    double? hourlyRate,
+  })?
+  onStartSession;
+  final VoidCallback onEndSession;
 
   const RoomCardWidget({
     super.key,
     required this.room,
     required this.isSelected,
     required this.onTap,
-    required this.onToggleStatus,
+    this.onStartSession,
+    required this.onEndSession,
   });
 
   @override
@@ -61,12 +69,37 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
     }
   }
 
+  Future<void> _showSessionTypeDialog(BuildContext context) async {
+    final room = widget.room;
+    final isRoom8 =
+        room.name.toLowerCase().contains('room 8') ||
+        room.name.toLowerCase().contains('room8');
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder:
+          (context) => SessionTypeDialog(
+            roomName: room.name,
+            isVip: room.isVip,
+            isRoom8: isRoom8,
+          ),
+    );
+
+    if (result != null && mounted && widget.onStartSession != null) {
+      await widget.onStartSession!(
+        psType: result['psType'],
+        isMulti: result['isMulti'],
+        hourlyRate: result['hourlyRate'],
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        width: 180, // Fixed width like in the image
+        width: 180,
         padding: const EdgeInsets.all(16),
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -130,7 +163,7 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
             ),
             const SizedBox(height: 12),
 
-            // Room details section
+            // Room details section - Show session info if occupied
             if (widget.room.isOccupied)
               StreamBuilder<int>(
                 stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
@@ -138,6 +171,25 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Show PS type if available
+                      if (widget.room.psTypeDisplay != null)
+                        _buildDetailRow(
+                          icon:
+                              widget.room.psType == 'ps5'
+                                  ? Icons.videogame_asset
+                                  : Icons.games,
+                          label: "Console",
+                          value: widget.room.psTypeDisplay!,
+                        ),
+
+                      // Show session type if available
+                      if (widget.room.sessionTypeDisplay != null)
+                        _buildDetailRow(
+                          icon: Icons.group,
+                          label: "Type",
+                          value: widget.room.sessionTypeDisplay!,
+                        ),
+
                       // Start time
                       _buildDetailRow(
                         icon: Icons.access_time,
@@ -171,19 +223,19 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
               )
             else
               // Empty state for free rooms
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Icon(
                     Icons.meeting_room_outlined,
                     size: 40,
                     color: Colors.grey,
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    "Available",
-                    style: TextStyle(
+                    widget.room.roomTypeDescription,
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 12,
                     ),
@@ -210,7 +262,13 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
                   elevation: 0,
                   shadowColor: Colors.transparent,
                 ),
-                onPressed: widget.onToggleStatus,
+                onPressed: () {
+                  if (widget.room.isOccupied) {
+                    widget.onEndSession();
+                  } else {
+                    _showSessionTypeDialog(context);
+                  }
+                },
                 child: Text(
                   widget.room.isOccupied ? "End Session" : "Start Session",
                   style: const TextStyle(
@@ -232,41 +290,44 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
     required String value,
     TextStyle? valueStyle,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          icon,
-          size: 14,
-          color: Colors.grey,
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style:
-                    valueStyle ??
-                    const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-              ),
-            ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: Colors.grey,
           ),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style:
+                      valueStyle ??
+                      const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -5,7 +5,17 @@ class StartSessionUsecase {
 
   StartSessionUsecase({required this.repository});
 
-  Future<void> call({required String roomId}) async {
-    return repository.startSession(roomId);
+  Future<void> call({
+    required String roomId,
+    String? psType,
+    bool? isMulti,
+    double? hourlyRate,
+  }) async {
+    return await repository.startSession(
+      roomId: roomId,
+      psType: psType,
+      isMulti: isMulti,
+      hourlyRate: hourlyRate,
+    );
   }
 }

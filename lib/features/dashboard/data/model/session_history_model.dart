@@ -7,6 +7,8 @@ class SessionHistory {
   final DateTime? endTime;
   final double hourlyRate;
   final double totalCost;
+  final String? psType;
+  final bool? isMulti;
 
   SessionHistory({
     required this.id,
@@ -15,6 +17,8 @@ class SessionHistory {
     this.endTime,
     required this.hourlyRate,
     required this.totalCost,
+    this.psType,
+    this.isMulti,
   });
 
   factory SessionHistory.fromJson(Map<String, dynamic> json) {
@@ -36,7 +40,23 @@ class SessionHistory {
       endTime: json['end_time'] != null ? parseTime(json['end_time']) : null,
       hourlyRate: (json['hourly_rate'] as num).toDouble(),
       totalCost: (json['total_cost'] as num).toDouble(),
+      psType: json['ps_type'] as String?,
+      isMulti: json['is_multi'] as bool?,
     );
+  }
+
+  // Get display name for PS type
+  String? get psTypeDisplay {
+    if (psType == 'ps4') return 'PS4';
+    if (psType == 'ps5') return 'PS5';
+    return null;
+  }
+
+  // Get display name for session type
+  String? get sessionTypeDisplay {
+    if (isMulti == true) return 'Multi';
+    if (isMulti == false) return 'Single';
+    return null;
   }
 
   // تنسيق وقت البداية
@@ -72,6 +92,14 @@ class SessionHistory {
 
   // تصحيح formattedCost
   String get formattedCost {
-    return '${totalCost.toStringAsFixed(0)} ₪';
+    return '${totalCost.toStringAsFixed(0)} \$';
+  }
+
+  // Get session type info for display
+  String get sessionTypeInfo {
+    final parts = [];
+    if (psTypeDisplay != null) parts.add(psTypeDisplay!);
+    if (sessionTypeDisplay != null) parts.add(sessionTypeDisplay!);
+    return parts.join(' - ');
   }
 }

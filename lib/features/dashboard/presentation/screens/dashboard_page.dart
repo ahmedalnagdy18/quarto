@@ -239,19 +239,26 @@ class _DashboardPageState extends State<DashboardPage> {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
-            child: Column(
-              children: [
-                _buildStatisticsContainer(),
-                const SizedBox(height: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _buildRoomsContainer()),
-                    const SizedBox(width: 20),
-                    Expanded(child: _buildRoomDetailsContainer()),
-                  ],
-                ),
-              ],
+            child: BlocListener<RoomsCubit, RoomsState>(
+              listener: (context, state) {
+                if (state is RoomsLoaded) {
+                  //  context.read<DashboardCubit>().loadDashboardStats();
+                }
+              },
+              child: Column(
+                children: [
+                  _buildStatisticsContainer(),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _buildRoomsContainer()),
+                      const SizedBox(width: 20),
+                      Expanded(child: _buildRoomDetailsContainer()),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -389,12 +396,20 @@ class _DashboardPageState extends State<DashboardPage> {
       room: room,
       isSelected: _selectedRoom?.id == room.id,
       onTap: () => _selectRoom(room),
-      onToggleStatus: () {
-        if (room.isOccupied) {
-          context.read<RoomsCubit>().endSession(room.id);
-        } else {
-          context.read<RoomsCubit>().startSession(room.id);
-        }
+      onEndSession: () {
+        context.read<RoomsCubit>().endSession(room.id);
+      },
+      onStartSession: ({
+        String? psType,
+        bool? isMulti,
+        double? hourlyRate,
+      }) async {
+        await context.read<RoomsCubit>().startSession(
+          room.id,
+          psType: psType,
+          isMulti: isMulti,
+          hourlyRate: hourlyRate,
+        );
       },
     );
   }

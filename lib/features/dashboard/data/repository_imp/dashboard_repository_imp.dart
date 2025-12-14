@@ -95,31 +95,57 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<void> startSession(String roomId) async {
+  Future<void> startSession({
+    required String roomId,
+    String? psType,
+    bool? isMulti,
+    double? hourlyRate,
+  }) async {
     try {
-      final now = DateTime.now().toUtc(); // استخدام UTC
+      final now = DateTime.now().toUtc();
 
-      // الحصول على بيانات الغرفة لمعرفة سعر الساعة
+      // Get room info
       final room = await getRoom(roomId);
 
-      // تحديث حالة الغرفة
-      await supabase
-          .from('rooms')
-          .update({
-            'is_occupied': true,
-            'session_start': now.toIso8601String(), // تأكد أنه ISO String
-            'updated_at': now.toIso8601String(),
-          })
-          .eq('id', roomId);
+      // Use provided hourly rate or calculate based on selection
+      final finalHourlyRate = hourlyRate ?? room.hourlyRate;
 
-      // إضافة جلسة جديدة مع سعر الساعة الخاص بالغرفة
-      await supabase.from('session_history').insert({
+      // Update room with session info
+      final updateData = {
+        'is_occupied': true,
+        'session_start': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
+      };
+
+      if (psType != null) {
+        updateData['ps_type'] = psType;
+      }
+      if (isMulti != null) {
+        updateData['is_multi'] = isMulti;
+      }
+      if (hourlyRate != null) {
+        updateData['hourly_rate'] = hourlyRate;
+      }
+
+      await supabase.from('rooms').update(updateData).eq('id', roomId);
+
+      // Add session to history
+      final sessionData = {
         'room_id': roomId,
-        'start_time': now.toIso8601String(), // ISO String
-        'hourly_rate': room.hourlyRate,
+        'start_time': now.toIso8601String(),
+        'hourly_rate': finalHourlyRate,
         'total_cost': 0.0,
         'created_at': now.toIso8601String(),
-      });
+      };
+
+      if (psType != null) {
+        sessionData['ps_type'] = psType;
+      }
+      if (isMulti != null) {
+        sessionData['is_multi'] = isMulti;
+      }
+
+      await supabase.from('session_history').insert(sessionData);
     } catch (e) {
       print('Error starting session: $e');
       rethrow;
@@ -256,6 +282,8 @@ class DashboardRepositoryImp implements DashboardRepository {
               .update({
                 'is_occupied': false,
                 'session_start': null,
+                'ps_type': null,
+                'is_multi': null,
                 'updated_at': now.toIso8601String(),
               })
               .eq('id', room.id);

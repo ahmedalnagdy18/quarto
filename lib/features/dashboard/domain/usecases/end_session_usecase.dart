@@ -6,6 +6,6 @@ class EndSessionUsecase {
   EndSessionUsecase({required this.repository});
 
   Future<void> call({required String roomId}) async {
-    return repository.endSession(roomId);
+    return await repository.endSession(roomId);
   }
 }

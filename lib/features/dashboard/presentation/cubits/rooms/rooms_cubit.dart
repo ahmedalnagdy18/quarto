@@ -1,4 +1,3 @@
-// lib/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
@@ -25,7 +24,6 @@ class RoomsCubit extends Cubit<RoomsState> {
     required this.startSessionUsecase,
     required this.endSessionUsecase,
   }) : super(RoomsInitial()) {
-    // بدء التايمر بمجرد إنشاء الكيوبت
     _startUpdateTimer();
   }
 
@@ -39,7 +37,6 @@ class RoomsCubit extends Cubit<RoomsState> {
     if (_isStreamActive) return;
 
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      // تحديث حالة الغرف المشغولة فقط
       if (state is RoomsLoaded) {
         _updateOccupiedRooms();
       }
@@ -59,7 +56,6 @@ class RoomsCubit extends Cubit<RoomsState> {
     final currentState = state as RoomsLoaded;
     final updatedRooms =
         currentState.rooms.map((room) {
-          // إذا كانت الغرفة مشغولة، نعيد إنشاؤها لتحريك التايمر
           if (room.isOccupied && room.sessionStart != null) {
             return Room(
               id: room.id,
@@ -67,6 +63,9 @@ class RoomsCubit extends Cubit<RoomsState> {
               isOccupied: room.isOccupied,
               sessionStart: room.sessionStart,
               hourlyRate: room.hourlyRate,
+              isVip: room.isVip,
+              psType: room.psType,
+              isMulti: room.isMulti,
             );
           }
           return room;
@@ -90,9 +89,19 @@ class RoomsCubit extends Cubit<RoomsState> {
     }
   }
 
-  Future<void> startSession(String roomId) async {
+  Future<void> startSession(
+    String roomId, {
+    String? psType,
+    bool? isMulti,
+    double? hourlyRate,
+  }) async {
     try {
-      await startSessionUsecase(roomId: roomId);
+      await startSessionUsecase(
+        roomId: roomId,
+        psType: psType,
+        isMulti: isMulti,
+        hourlyRate: hourlyRate,
+      );
       await loadRoomsAndStats();
     } catch (e) {
       emit(RoomsError(e.toString()));
