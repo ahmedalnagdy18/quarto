@@ -10,6 +10,7 @@ import 'package:quarto/features/dashboard/data/model/session_history_model.dart'
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/export_excel_button.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/room_card_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/start_new_day_widget.dart';
 
@@ -184,7 +185,7 @@ class _DashboardPageState extends State<DashboardPage> {
       }
       return total;
     } catch (e) {
-      print('Error calculating total: $e');
+      // print('Error calculating total: $e');
       return 0.0;
     }
   }
@@ -201,20 +202,6 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgCard,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(top: 30, right: 30),
-        child: FloatingActionButton.extended(
-          onPressed: () => _showStartNewDayDialog(context),
-          backgroundColor: AppColors.bgDark,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          label: const Text('Start New Day'),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: RefreshIndicator(
         onRefresh: () async {
           // 🔹 Read from context BEFORE any await
@@ -237,26 +224,16 @@ class _DashboardPageState extends State<DashboardPage> {
             child: BlocListener<RoomsCubit, RoomsState>(
               listener: (context, state) {
                 if (state is RoomsLoaded) {
-                  // فقط عند تغييرات مهمة، ليس كل تحديث
-                  final prevState = context.read<DashboardCubit>().state;
-                  if (prevState is DashboardLoaded) {
-                    final newFree =
-                        state.rooms.where((r) => !r.isOccupied).length;
-                    final newOccupied =
-                        state.rooms.where((r) => r.isOccupied).length;
-
-                    // تحديث فقط إذا تغيرت الأرقام
-                    if (newFree != prevState.totalFreeRooms ||
-                        newOccupied != prevState.totalOccupiedRooms) {
-                      context.read<DashboardCubit>().updateStatsFromRooms(
-                        state.rooms,
-                      );
-                    }
-                  }
+                  context.read<DashboardCubit>().loadDashboardStats();
+                  //todo: add ==============
                 }
               },
               child: Column(
                 children: [
+                  _buildExportButtons(
+                    onPressed: () => _showStartNewDayDialog(context),
+                  ),
+                  SizedBox(height: 14),
                   _buildStatisticsContainer(),
                   const SizedBox(height: 20),
                   Row(
@@ -599,4 +576,23 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+}
+
+Widget _buildExportButtons({required void Function()? onPressed}) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceAround,
+    children: [
+      ExportSessionsButton(),
+      ElevatedButton(
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(
+            AppColors.primaryBlue,
+          ),
+          foregroundColor: WidgetStatePropertyAll(Colors.white),
+        ),
+        onPressed: onPressed,
+        child: Text("Start new day"),
+      ),
+    ],
+  );
 }

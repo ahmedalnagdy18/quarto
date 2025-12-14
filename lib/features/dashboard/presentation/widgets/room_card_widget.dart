@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/common/vip_widget.dart';
 import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
@@ -233,13 +234,15 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
                     color: Colors.grey,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    widget.room.roomTypeDescription,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
-                  ),
+                  widget.room.roomTypeDescription == "VIP Room"
+                      ? VipWidget()
+                      : Text(
+                        widget.room.roomTypeDescription,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
                 ],
               ),
 

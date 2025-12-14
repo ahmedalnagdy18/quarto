@@ -28,7 +28,7 @@ class Room {
         try {
           return DateTime.parse(value).toLocal();
         } catch (e) {
-          print('Error parsing datetime: $value, error: $e');
+          // print('Error parsing datetime: $value, error: $e');
           return null;
         }
       }

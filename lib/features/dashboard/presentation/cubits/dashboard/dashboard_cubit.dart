@@ -1,6 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'package:meta/meta.dart';
-import 'package:quarto/features/dashboard/data/model/room_model.dart';
+import 'package:flutter/material.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/start_new_day_usecase.dart';
 
@@ -47,21 +46,5 @@ class DashboardCubit extends Cubit<DashboardState> {
     } catch (e) {
       emit(DashboardError(e.toString()));
     }
-  }
-
-  Future<void> updateStatsFromRooms(List<Room> rooms) async {
-    final freeRooms = rooms.where((r) => !r.isOccupied).length;
-    final occupiedRooms = rooms.where((r) => r.isOccupied).length;
-
-    // احسب الدخل محلياً إذا عندك البيانات
-    double todayIncome = 0; // يمكنك حسابها إذا عندك history محلي
-
-    emit(
-      DashboardLoaded(
-        totalFreeRooms: freeRooms,
-        totalOccupiedRooms: occupiedRooms,
-        todayIncome: todayIncome,
-      ),
-    );
   }
 }

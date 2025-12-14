@@ -17,7 +17,7 @@ class DashboardRepositoryImp implements DashboardRepository {
           .order('name', ascending: true);
       return (response as List).map((json) => Room.fromJson(json)).toList();
     } catch (e) {
-      print('Error getting rooms: $e');
+      // print('Error getting rooms: $e');
       rethrow;
     }
   }
@@ -55,7 +55,7 @@ class DashboardRepositoryImp implements DashboardRepository {
         'rooms': rooms,
       };
     } catch (e) {
-      print('Error getting dashboard stats: $e');
+      // print('Error getting dashboard stats: $e');
       rethrow;
     }
   }
@@ -67,7 +67,7 @@ class DashboardRepositoryImp implements DashboardRepository {
           await supabase.from('rooms').select().eq('id', roomId).single();
       return Room.fromJson(response);
     } catch (e) {
-      print('Error getting room: $e');
+      // print('Error getting room: $e');
       rethrow;
     }
   }
@@ -89,7 +89,7 @@ class DashboardRepositoryImp implements DashboardRepository {
           .map((json) => SessionHistory.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error getting room history: $e');
+      // print('Error getting room history: $e');
       rethrow;
     }
   }
@@ -147,7 +147,7 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       await supabase.from('session_history').insert(sessionData);
     } catch (e) {
-      print('Error starting session: $e');
+      // print('Error starting session: $e');
       rethrow;
     }
   }
@@ -203,7 +203,7 @@ class DashboardRepositoryImp implements DashboardRepository {
             .eq('id', activeSession['id']);
       }
     } catch (e) {
-      print('Error ending session: $e');
+      // print('Error ending session: $e');
       rethrow;
     }
   }
@@ -223,7 +223,7 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       return response;
     } catch (e) {
-      print('Error getting active session: $e');
+      // print('Error getting active session: $e');
       return null;
     }
   }
@@ -235,7 +235,7 @@ class DashboardRepositoryImp implements DashboardRepository {
       final startOfDay = DateTime(now.year, now.month, now.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      print('Clearing today\'s history from $startOfDay to $endOfDay');
+      // print('Clearing today\'s history from $startOfDay to $endOfDay');
 
       // Delete all session history from today
       final response = await supabase
@@ -248,7 +248,7 @@ class DashboardRepositoryImp implements DashboardRepository {
       final deletedCount = response?.length ?? 0;
       print('Deleted $deletedCount sessions from today');
     } catch (e) {
-      print('Error clearing today history: $e');
+      // print('Error clearing today history: $e');
       rethrow;
     }
   }
@@ -258,7 +258,7 @@ class DashboardRepositoryImp implements DashboardRepository {
     try {
       final now = DateTime.now().toUtc();
 
-      print('Resetting all sessions...');
+      // print('Resetting all sessions...');
 
       // 1. Get all rooms
       final rooms = await getAllRooms();
@@ -270,9 +270,9 @@ class DashboardRepositoryImp implements DashboardRepository {
           if (room.isOccupied && room.sessionStart != null) {
             try {
               await endSession(room.id);
-              print('Ended session for room: ${room.name}');
+              // print('Ended session for room: ${room.name}');
             } catch (e) {
-              print('Could not properly end session for ${room.name}: $e');
+              // print('Could not properly end session for ${room.name}: $e');
             }
           }
 
@@ -288,16 +288,16 @@ class DashboardRepositoryImp implements DashboardRepository {
               })
               .eq('id', room.id);
 
-          print('Reset room: ${room.name}');
+          // print('Reset room: ${room.name}');
         } catch (e) {
-          print('Error resetting room ${room.name}: $e');
+          // print('Error resetting room ${room.name}: $e');
           // Continue with next room
         }
       }
 
-      print('All rooms reset successfully');
+      // print('All rooms reset successfully');
     } catch (e) {
-      print('Error resetting all sessions: $e');
+      // print('Error resetting all sessions: $e');
       rethrow;
     }
   }
@@ -306,7 +306,7 @@ class DashboardRepositoryImp implements DashboardRepository {
   @override
   Future<void> startNewDay() async {
     try {
-      print('Starting new day...');
+      // print('Starting new day...');
 
       // 1. Reset all sessions (end active ones, reset rooms)
       await resetAllSessions();
@@ -315,13 +315,13 @@ class DashboardRepositoryImp implements DashboardRepository {
       try {
         await clearTodayHistory();
       } catch (e) {
-        print('Warning: Could not clear history: $e');
+        // print('Warning: Could not clear history: $e');
         // Continue anyway - rooms are already reset
       }
 
-      print('New day started successfully');
+      // print('New day started successfully');
     } catch (e) {
-      print('Error starting new day: $e');
+      //  print('Error starting new day: $e');
       rethrow;
     }
   }

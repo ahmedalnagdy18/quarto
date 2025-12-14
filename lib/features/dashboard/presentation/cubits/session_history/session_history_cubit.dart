@@ -1,5 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/material.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_history_usecase.dart';
 
