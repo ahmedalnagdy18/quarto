@@ -1,3 +1,5 @@
+import 'package:quarto/core/extentions/app_extentions.dart';
+
 class SessionHistory {
   final String id;
   final String roomId;
@@ -39,19 +41,13 @@ class SessionHistory {
 
   // تنسيق وقت البداية
   String get startTimeShort {
-    final local = startTime; // بالفعل محول للوقت المحلي
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
+    return TimeFormatter.formatTo12Hour(startTime);
   }
 
   // تنسيق وقت النهاية
   String get endTimeShort {
     if (endTime == null) return 'Running';
-    final local = endTime!; // بالفعل محول للوقت المحلي
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
+    return TimeFormatter.formatTo12Hour(endTime!);
   }
 
   String get formattedDuration {

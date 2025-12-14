@@ -11,7 +11,10 @@ class DashboardRepositoryImp implements DashboardRepository {
   @override
   Future<List<Room>> getAllRooms() async {
     try {
-      final response = await supabase.from('rooms').select().order('name');
+      final response = await supabase
+          .from('rooms')
+          .select()
+          .order('name', ascending: true);
       return (response as List).map((json) => Room.fromJson(json)).toList();
     } catch (e) {
       print('Error getting rooms: $e');
@@ -80,7 +83,7 @@ class DashboardRepositoryImp implements DashboardRepository {
           .select()
           .eq('room_id', roomId)
           .gte('start_time', startOfDay.toIso8601String())
-          .order('start_time', ascending: false);
+          .order('start_time', ascending: true);
 
       return (response as List)
           .map((json) => SessionHistory.fromJson(json))
@@ -196,6 +199,102 @@ class DashboardRepositoryImp implements DashboardRepository {
     } catch (e) {
       print('Error getting active session: $e');
       return null;
+    }
+  }
+
+  @override
+  Future<void> clearTodayHistory() async {
+    try {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      print('Clearing today\'s history from $startOfDay to $endOfDay');
+
+      // Delete all session history from today
+      final response = await supabase
+          .from('session_history')
+          .delete()
+          .gte('start_time', startOfDay.toIso8601String())
+          .lt('start_time', endOfDay.toIso8601String());
+
+      // Handle null response (no rows deleted)
+      final deletedCount = response?.length ?? 0;
+      print('Deleted $deletedCount sessions from today');
+    } catch (e) {
+      print('Error clearing today history: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> resetAllSessions() async {
+    try {
+      final now = DateTime.now().toUtc();
+
+      print('Resetting all sessions...');
+
+      // 1. Get all rooms
+      final rooms = await getAllRooms();
+
+      // 2. Reset each room individually (safer, always works)
+      for (final room in rooms) {
+        try {
+          // If room is occupied, try to end session properly
+          if (room.isOccupied && room.sessionStart != null) {
+            try {
+              await endSession(room.id);
+              print('Ended session for room: ${room.name}');
+            } catch (e) {
+              print('Could not properly end session for ${room.name}: $e');
+            }
+          }
+
+          // Always reset the room state
+          await supabase
+              .from('rooms')
+              .update({
+                'is_occupied': false,
+                'session_start': null,
+                'updated_at': now.toIso8601String(),
+              })
+              .eq('id', room.id);
+
+          print('Reset room: ${room.name}');
+        } catch (e) {
+          print('Error resetting room ${room.name}: $e');
+          // Continue with next room
+        }
+      }
+
+      print('All rooms reset successfully');
+    } catch (e) {
+      print('Error resetting all sessions: $e');
+      rethrow;
+    }
+  }
+
+  // Optional: Combined method to start new day
+  @override
+  Future<void> startNewDay() async {
+    try {
+      print('Starting new day...');
+
+      // 1. Reset all sessions (end active ones, reset rooms)
+      await resetAllSessions();
+
+      // 2. Clear today's history (wrap in try-catch to continue even if it fails)
+      try {
+        await clearTodayHistory();
+      } catch (e) {
+        print('Warning: Could not clear history: $e');
+        // Continue anyway - rooms are already reset
+      }
+
+      print('New day started successfully');
+    } catch (e) {
+      print('Error starting new day: $e');
+      rethrow;
     }
   }
 }

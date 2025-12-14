@@ -39,3 +39,23 @@ TextInputFormatter noSpaceFormatter() {
     },
   );
 } //  noSpaceFormatter(),   to call it
+
+// time_formatter.dart
+class TimeFormatter {
+  static String formatTo12Hour(DateTime? time) {
+    if (time == null) return "--:--";
+    final localTime = time.toLocal();
+
+    int hour = localTime.hour;
+    final String period = hour >= 12 ? 'PM' : 'AM';
+
+    if (hour == 0) {
+      hour = 12; // 12 AM
+    } else if (hour > 12) {
+      hour = hour - 12;
+    }
+
+    final minute = localTime.minute.toString().padLeft(2, '0');
+    return "$hour:$minute $period";
+  }
+}

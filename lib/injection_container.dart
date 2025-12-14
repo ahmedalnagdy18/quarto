@@ -6,6 +6,7 @@ import 'package:quarto/features/dashboard/domain/usecases/get_all_rooms_usecase.
 import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_history_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/start_new_day_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/start_session_usecase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -38,5 +39,8 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<StartSessionUsecase>(
     () => StartSessionUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<StartNewDayUsecase>(
+    () => StartNewDayUsecase(repository: sl()),
   );
 }

@@ -2,189 +2,133 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/common/app_loading_widget.dart';
+import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/room_card_widget.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/start_new_day_widget.dart';
 
-// RoomCardWidget مع التحديث الحي
-class RoomCardWidget extends StatefulWidget {
-  final Room room;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final VoidCallback onToggleStatus;
+// Add this helper class
+class StartNewDayDialog extends StatefulWidget {
+  final BuildContext parentContext;
 
-  const RoomCardWidget({
-    Key? key,
-    required this.room,
-    required this.isSelected,
-    required this.onTap,
-    required this.onToggleStatus,
-  }) : super(key: key);
+  const StartNewDayDialog({super.key, required this.parentContext});
 
   @override
-  State<RoomCardWidget> createState() => _RoomCardWidgetState();
+  State<StartNewDayDialog> createState() => _StartNewDayDialogState();
 }
 
-class _RoomCardWidgetState extends State<RoomCardWidget> {
-  Timer? _timer;
+class _StartNewDayDialogState extends State<StartNewDayDialog> {
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // بدء التايمر فقط إذا كانت الغرفة مشغولة
-    if (widget.room.isOccupied) {
-      _startTimer();
-    }
+    _startNewDay();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+  Future<void> _startNewDay() async {
+    // 🔹 Extract everything from context BEFORE await
+    final dashboardCubit = widget.parentContext.read<DashboardCubit>();
+    final roomsCubit = widget.parentContext.read<RoomsCubit>();
+    final sessionHistoryCubit =
+        widget.parentContext.read<SessionHistoryCubit>();
 
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          // إعادة البناء للتحديث - لا حاجة لتغيير أي شيء، فقط إعادة build
-        });
+    final parentState =
+        widget.parentContext.findAncestorStateOfType<_DashboardPageState>();
+
+    try {
+      await dashboardCubit.startNewDay();
+      await roomsCubit.refresh();
+
+      if (parentState != null && parentState._selectedRoom != null) {
+        await sessionHistoryCubit.loadRoomHistory(
+          parentState._selectedRoom!.id,
+        );
       }
-    });
-  }
 
-  @override
-  void didUpdateWidget(RoomCardWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
+      if (!mounted) return;
 
-    // إذا تغيرت حالة الغرفة من/إلى مشغولة
-    if (oldWidget.room.isOccupied != widget.room.isOccupied) {
-      if (widget.room.isOccupied) {
-        _startTimer();
-      } else {
-        _timer?.cancel();
-        _timer = null;
-      }
+      setState(() {
+        _isLoading = false;
+        _error = null;
+      });
+
+      // Auto-close after 1 second
+      Future.delayed(const Duration(seconds: 1), () {
+        if (!mounted) return;
+        Navigator.pop(widget.parentContext);
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color:
-              widget.isSelected
-                  ? AppColors.primaryBlue.withOpacity(0.2)
-                  : AppColors.bgCardLight,
-          border: Border.all(
-            color:
-                widget.isSelected ? AppColors.primaryBlue : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(widget.room.name, style: AppTexts.smallHeading),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+    return AlertDialog(
+      backgroundColor: AppColors.bgDark,
+      content:
+          _isLoading
+              ? const Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text(
+                    'Starting new day...',
+                    style: TextStyle(color: Colors.white),
                   ),
-                  decoration: BoxDecoration(
-                    color:
-                        widget.room.isOccupied
-                            ? Colors.deepOrange
-                            : AppColors.statusFree.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4),
+                ],
+              )
+              : _error != null
+              ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error, color: Colors.red, size: 40),
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
                   ),
-                  child: Text(
-                    widget.room.isOccupied ? "Occupied" : "Free",
-                    style: AppTexts.smallBody.copyWith(
-                      color:
-                          widget.room.isOccupied
-                              ? Colors.white
-                              : AppColors.statusFree,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ],
+              )
+              : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 40),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'New day started successfully!',
+                    style: TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            if (!widget.room.isOccupied)
-              const SizedBox(height: 40)
-            else ...[
-              // تظهر البيانات الحية فقط للغرف المشغولة
-              StreamBuilder<int>(
-                stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-                builder: (context, snapshot) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Start: ${_formatTime(widget.room.sessionStart)}",
-                        style: AppTexts.smallBody,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Live Duration: ${widget.room.liveDuration}",
-                        style: AppTexts.smallBody,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Current Cost: ${widget.room.calculatedCost.toStringAsFixed(0)} ₪",
-                        style: AppTexts.smallBody,
-                      ),
-                    ],
-                  );
-                },
+                ],
               ),
-            ],
-
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      widget.room.isOccupied
-                          ? Colors.red
-                          : AppColors.primaryBlue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      actions:
+          _error != null
+              ? [
+                TextButton(
+                  onPressed: () => Navigator.pop(widget.parentContext),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
-                onPressed: widget.onToggleStatus,
-                child: Text(
-                  widget.room.isOccupied ? "End Session" : "Start Session",
-                  style: AppTexts.smallBody.copyWith(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+              ]
+              : null,
     );
-  }
-
-  String _formatTime(DateTime? time) {
-    if (time == null) return "--:--";
-    final localTime = time.toLocal();
-    final hour = localTime.hour.toString().padLeft(2, '0');
-    final minute = localTime.minute.toString().padLeft(2, '0');
-    return "$hour:$minute";
   }
 }
 
@@ -217,7 +161,6 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String _selectedTab = "Today";
   Room? _selectedRoom;
 
   @override
@@ -252,23 +195,43 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   String _formatTime(DateTime? time) {
-    if (time == null) return "--:--";
-    final localTime = time.toLocal();
-    final hour = localTime.hour.toString().padLeft(2, '0');
-    final minute = localTime.minute.toString().padLeft(2, '0');
-    return "$hour:$minute";
+    return TimeFormatter.formatTo12Hour(time);
+  }
+
+  void _showStartNewDayDialog(BuildContext context) {
+    showDialog(context: context, builder: (context) => StartNewDayWidget());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgCard,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(top: 30, right: 30),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showStartNewDayDialog(context),
+          backgroundColor: AppColors.bgDark,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          label: const Text('Start New Day'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: RefreshIndicator(
         onRefresh: () async {
-          await context.read<DashboardCubit>().loadDashboardStats();
-          await context.read<RoomsCubit>().refresh();
+          // 🔹 Read from context BEFORE any await
+          final dashboardCubit = context.read<DashboardCubit>();
+          final roomsCubit = context.read<RoomsCubit>();
+          final sessionHistoryCubit = context.read<SessionHistoryCubit>();
+
+          await dashboardCubit.loadDashboardStats();
+          await roomsCubit.refresh();
+
           if (_selectedRoom != null) {
-            await context.read<SessionHistoryCubit>().loadRoomHistory(
+            await sessionHistoryCubit.loadRoomHistory(
               _selectedRoom!.id,
             );
           }
@@ -329,8 +292,20 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               _buildStatColumn(
                 "Today Income",
-                "${todayIncome.toStringAsFixed(0)} ₪",
+                "${todayIncome.toStringAsFixed(0)} \$",
                 state,
+              ),
+              IconButton(
+                onPressed: () {
+                  context.read<DashboardCubit>().loadDashboardStats();
+                  context.read<RoomsCubit>().refresh();
+                  if (_selectedRoom != null) {
+                    context.read<SessionHistoryCubit>().loadRoomHistory(
+                      _selectedRoom!.id,
+                    );
+                  }
+                },
+                icon: Icon(Icons.refresh),
               ),
             ],
           ),
@@ -347,7 +322,7 @@ class _DashboardPageState extends State<DashboardPage> {
         Text(title, style: AppTexts.smallHeading),
         const SizedBox(height: 12),
         if (state is DashboardLoading)
-          const CircularProgressIndicator()
+          const AppLoadingWidget()
         else if (state is DashboardError)
           Text("Error", style: AppTexts.largeHeading)
         else
@@ -377,9 +352,6 @@ class _DashboardPageState extends State<DashboardPage> {
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 children: [
-                  _buildTabs(),
-                  Divider(color: AppColors.borderLight),
-                  const SizedBox(height: 8),
                   _buildRoomsContent(state),
                 ],
               ),
@@ -390,48 +362,15 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTabs() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildTab("Today"),
-        _buildTab("Yesterday"),
-        _buildTab("Custom Date"),
-      ],
-    );
-  }
-
-  Widget _buildTab(String title) {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTab = title),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color:
-              _selectedTab == title
-                  ? AppColors.primaryBlue
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          title,
-          style: AppTexts.meduimBody.copyWith(
-            color: _selectedTab == title ? Colors.white : Colors.grey,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildRoomsContent(RoomsState state) {
     if (state is RoomsLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: AppLoadingWidget());
     } else if (state is RoomsError) {
       return Center(child: Text("Error: ${state.message}"));
     } else if (state is RoomsLoaded) {
       return _buildRoomsGrid(state.rooms);
     } else {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: AppLoadingWidget());
     }
   }
 
@@ -552,7 +491,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Text("Current Cost", style: AppTexts.smallBody),
               const SizedBox(height: 6),
               Text(
-                "${room.calculatedCost.toStringAsFixed(0)} ₪",
+                "${room.calculatedCost.toStringAsFixed(0)} \$",
                 style: AppTexts.meduimBody.copyWith(
                   color: AppColors.primaryBlue,
                 ),
@@ -569,7 +508,7 @@ class _DashboardPageState extends State<DashboardPage> {
     List<SessionHistory> history,
   ) {
     if (state is SessionHistoryLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: AppLoadingWidget());
     } else if (state is SessionHistoryError) {
       return Text("Error: ${state.message}", style: AppTexts.smallBody);
     } else if (history.isEmpty) {
@@ -611,7 +550,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 DataCell(Text(session.formattedDuration)),
-                DataCell(Text("${session.totalCost.toStringAsFixed(0)} ₪")),
+                DataCell(Text("${session.totalCost.toStringAsFixed(0)} \$")),
               ],
             );
           }).toList(),
@@ -632,7 +571,7 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           Text("Total of day:", style: AppTexts.meduimBody),
           Text(
-            "${total.toStringAsFixed(0)} ₪",
+            "${total.toStringAsFixed(0)} \$",
             style: AppTexts.largeHeading.copyWith(color: AppColors.primaryBlue),
           ),
         ],
