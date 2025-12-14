@@ -132,7 +132,6 @@ class _StartNewDayDialogState extends State<StartNewDayDialog> {
   }
 }
 
-// Stream Builder للغرفة المحددة في التفاصيل
 class _RoomDetailsStreamBuilder extends StatelessWidget {
   final Room room;
   final Widget Function(BuildContext, Room) builder;
@@ -144,12 +143,8 @@ class _RoomDetailsStreamBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<int>(
-      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-      builder: (context, snapshot) {
-        return builder(context, room);
-      },
-    );
+    // Just call the builder directly without streaming
+    return builder(context, room);
   }
 }
 
@@ -242,7 +237,22 @@ class _DashboardPageState extends State<DashboardPage> {
             child: BlocListener<RoomsCubit, RoomsState>(
               listener: (context, state) {
                 if (state is RoomsLoaded) {
-                  //  context.read<DashboardCubit>().loadDashboardStats();
+                  // فقط عند تغييرات مهمة، ليس كل تحديث
+                  final prevState = context.read<DashboardCubit>().state;
+                  if (prevState is DashboardLoaded) {
+                    final newFree =
+                        state.rooms.where((r) => !r.isOccupied).length;
+                    final newOccupied =
+                        state.rooms.where((r) => r.isOccupied).length;
+
+                    // تحديث فقط إذا تغيرت الأرقام
+                    if (newFree != prevState.totalFreeRooms ||
+                        newOccupied != prevState.totalOccupiedRooms) {
+                      context.read<DashboardCubit>().updateStatsFromRooms(
+                        state.rooms,
+                      );
+                    }
+                  }
                 }
               },
               child: Column(
@@ -478,43 +488,39 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildLiveSessionInfo(Room room) {
-    return StreamBuilder<int>(
-      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-      builder: (context, snapshot) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Current Session", style: AppTexts.meduimBody),
-            const SizedBox(height: 12),
-            Text("Start Time", style: AppTexts.smallBody),
-            const SizedBox(height: 6),
-            Text(
-              room.isOccupied
-                  ? _formatTime(room.sessionStart)
-                  : "No active session",
-              style: AppTexts.meduimBody,
+    // Remove StreamBuilder, just show static info
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Current Session", style: AppTexts.meduimBody),
+        const SizedBox(height: 12),
+        Text("Start Time", style: AppTexts.smallBody),
+        const SizedBox(height: 6),
+        Text(
+          room.isOccupied
+              ? _formatTime(room.sessionStart)
+              : "No active session",
+          style: AppTexts.meduimBody,
+        ),
+        const SizedBox(height: 12),
+        Text("Timer", style: AppTexts.smallBody),
+        const SizedBox(height: 6),
+        Text(
+          room.isOccupied ? room.liveDuration : "0h 0m",
+          style: AppTexts.meduimBody,
+        ),
+        const SizedBox(height: 8),
+        if (room.isOccupied) ...[
+          Text("Current Cost", style: AppTexts.smallBody),
+          const SizedBox(height: 6),
+          Text(
+            "${room.calculatedCost.toStringAsFixed(0)} \$",
+            style: AppTexts.meduimBody.copyWith(
+              color: AppColors.primaryBlue,
             ),
-            const SizedBox(height: 12),
-            Text("Timer", style: AppTexts.smallBody),
-            const SizedBox(height: 6),
-            Text(
-              room.isOccupied ? room.liveDuration : "0h 0m",
-              style: AppTexts.meduimBody,
-            ),
-            const SizedBox(height: 8),
-            if (room.isOccupied) ...[
-              Text("Current Cost", style: AppTexts.smallBody),
-              const SizedBox(height: 6),
-              Text(
-                "${room.calculatedCost.toStringAsFixed(0)} \$",
-                style: AppTexts.meduimBody.copyWith(
-                  color: AppColors.primaryBlue,
-                ),
-              ),
-            ],
-          ],
-        );
-      },
+          ),
+        ],
+      ],
     );
   }
 

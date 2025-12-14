@@ -49,9 +49,12 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {});
+    // Only update every 30 seconds instead of every second
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted && widget.room.isOccupied) {
+        setState(() {
+          // Just trigger a rebuild to update time/cost
+        });
       }
     });
   }
@@ -59,6 +62,8 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
   @override
   void didUpdateWidget(RoomCardWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // If room status changed
     if (oldWidget.room.isOccupied != widget.room.isOccupied) {
       if (widget.room.isOccupied) {
         _startTimer();
@@ -163,63 +168,58 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
             ),
             const SizedBox(height: 12),
 
-            // Room details section - Show session info if occupied
+            // Room details section
             if (widget.room.isOccupied)
-              StreamBuilder<int>(
-                stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-                builder: (context, snapshot) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Show PS type if available
-                      if (widget.room.psTypeDisplay != null)
-                        _buildDetailRow(
-                          icon:
-                              widget.room.psType == 'ps5'
-                                  ? Icons.videogame_asset
-                                  : Icons.games,
-                          label: "Console",
-                          value: widget.room.psTypeDisplay!,
-                        ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Show PS type if available
+                  if (widget.room.psTypeDisplay != null)
+                    _buildDetailRow(
+                      icon:
+                          widget.room.psType == 'ps5'
+                              ? Icons.videogame_asset
+                              : Icons.games,
+                      label: "Console",
+                      value: widget.room.psTypeDisplay!,
+                    ),
 
-                      // Show session type if available
-                      if (widget.room.sessionTypeDisplay != null)
-                        _buildDetailRow(
-                          icon: Icons.group,
-                          label: "Type",
-                          value: widget.room.sessionTypeDisplay!,
-                        ),
+                  // Show session type if available
+                  if (widget.room.sessionTypeDisplay != null)
+                    _buildDetailRow(
+                      icon: Icons.group,
+                      label: "Type",
+                      value: widget.room.sessionTypeDisplay!,
+                    ),
 
-                      // Start time
-                      _buildDetailRow(
-                        icon: Icons.access_time,
-                        label: "Start",
-                        value: _formatTime(widget.room.sessionStart),
-                      ),
-                      const SizedBox(height: 8),
+                  // Start time
+                  _buildDetailRow(
+                    icon: Icons.access_time,
+                    label: "Start",
+                    value: _formatTime(widget.room.sessionStart),
+                  ),
+                  const SizedBox(height: 8),
 
-                      // Live duration
-                      _buildDetailRow(
-                        icon: Icons.timer_outlined,
-                        label: "Live Duration",
-                        value: widget.room.liveDuration,
-                      ),
-                      const SizedBox(height: 8),
+                  // Live duration (calculated on the fly)
+                  _buildDetailRow(
+                    icon: Icons.timer_outlined,
+                    label: "Live Duration",
+                    value: widget.room.liveDuration,
+                  ),
+                  const SizedBox(height: 8),
 
-                      // Current cost
-                      _buildDetailRow(
-                        icon: Icons.attach_money,
-                        label: "Current Cost",
-                        value:
-                            "${widget.room.calculatedCost.toStringAsFixed(0)} \$",
-                        valueStyle: AppTexts.smallBody.copyWith(
-                          color: AppColors.primaryBlue,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                  // Current cost (calculated on the fly)
+                  _buildDetailRow(
+                    icon: Icons.attach_money,
+                    label: "Current Cost",
+                    value:
+                        "${widget.room.calculatedCost.toStringAsFixed(0)} \$",
+                    valueStyle: AppTexts.smallBody.copyWith(
+                      color: AppColors.primaryBlue,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               )
             else
               // Empty state for free rooms

@@ -15,64 +15,12 @@ class RoomsCubit extends Cubit<RoomsState> {
   final StartSessionUsecase startSessionUsecase;
   final EndSessionUsecase endSessionUsecase;
 
-  Timer? _updateTimer;
-  bool _isStreamActive = false;
-
   RoomsCubit({
     required this.getDashboardStatsUsecase,
     required this.getAllRoomsUsecase,
     required this.startSessionUsecase,
     required this.endSessionUsecase,
-  }) : super(RoomsInitial()) {
-    _startUpdateTimer();
-  }
-
-  @override
-  Future<void> close() {
-    _stopUpdateTimer();
-    return super.close();
-  }
-
-  void _startUpdateTimer() {
-    if (_isStreamActive) return;
-
-    _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state is RoomsLoaded) {
-        _updateOccupiedRooms();
-      }
-    });
-    _isStreamActive = true;
-  }
-
-  void _stopUpdateTimer() {
-    _updateTimer?.cancel();
-    _updateTimer = null;
-    _isStreamActive = false;
-  }
-
-  void _updateOccupiedRooms() {
-    if (state is! RoomsLoaded) return;
-
-    final currentState = state as RoomsLoaded;
-    final updatedRooms =
-        currentState.rooms.map((room) {
-          if (room.isOccupied && room.sessionStart != null) {
-            return Room(
-              id: room.id,
-              name: room.name,
-              isOccupied: room.isOccupied,
-              sessionStart: room.sessionStart,
-              hourlyRate: room.hourlyRate,
-              isVip: room.isVip,
-              psType: room.psType,
-              isMulti: room.isMulti,
-            );
-          }
-          return room;
-        }).toList();
-
-    emit(currentState.copyWith(rooms: updatedRooms));
-  }
+  }) : super(RoomsInitial());
 
   Future<void> loadRoomsAndStats() async {
     emit(RoomsLoading());
