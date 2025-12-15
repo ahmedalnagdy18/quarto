@@ -1,15 +1,21 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:excel/excel.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:quarto/core/colors/app_colors.dart';
-
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ExportSessionsButton extends StatelessWidget {
   const ExportSessionsButton({super.key});
+
+  String getSafeTimestamp() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +55,9 @@ class ExportSessionsButton extends StatelessWidget {
             'Cost',
           ]);
 
-          double totalCostAllRooms = 0.0; // ← مجموع كل الرومات
+          double totalCostAllRooms = 0.0;
 
-          // Loop through rooms
           for (var room in rooms) {
-            // Load history for each room
             final history = await historyCubit.getRoomHistoryUsecase(
               roomId: room.id,
             );
@@ -96,9 +100,7 @@ class ExportSessionsButton extends StatelessWidget {
               ]);
             }
 
-            totalCostAllRooms += totalCost; // ← تحديث مجموع الكل
-
-            // Empty row to separate rooms
+            totalCostAllRooms += totalCost;
             sheet.appendRow([]);
           }
 
@@ -115,10 +117,13 @@ class ExportSessionsButton extends StatelessWidget {
             totalCostAllRooms.toStringAsFixed(2),
           ]);
 
-          // Save file
+          // Save file with safe filename
           final directory = await getApplicationDocumentsDirectory();
-          final filePath =
-              '${directory.path}/rooms_history_${DateTime.now().toIso8601String()}.xlsx';
+          final filePath = p.join(
+            directory.path,
+            'rooms_history_${getSafeTimestamp()}.xlsx',
+          );
+
           final fileBytes = excel.encode();
           if (fileBytes != null) {
             final file = File(filePath);
@@ -128,9 +133,10 @@ class ExportSessionsButton extends StatelessWidget {
             );
           }
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error exporting: $e")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Error exporting: $e")));
+          print(e);
         }
       },
     );
