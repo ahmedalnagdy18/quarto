@@ -10,6 +10,7 @@ import 'package:quarto/features/dashboard/data/model/session_history_model.dart'
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/export_excel_button.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/room_card_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/start_new_day_widget.dart';
@@ -450,7 +451,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   // Today History
                   Text("Today History", style: AppTexts.meduimBody),
                   const SizedBox(height: 12),
-                  _buildHistoryContent(state, history),
+                  _buildHistoryContent(state, history, liveRoom),
                   const SizedBox(height: 12),
 
                   // Total of day
@@ -504,6 +505,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildHistoryContent(
     SessionHistoryState state,
     List<SessionHistory> history,
+    Room room,
   ) {
     if (state is SessionHistoryLoading) {
       return const Center(child: AppLoadingWidget());
@@ -515,11 +517,11 @@ class _DashboardPageState extends State<DashboardPage> {
         style: TextStyle(color: Colors.grey),
       );
     } else {
-      return _buildHistoryTable(history);
+      return _buildHistoryTable(history, room);
     }
   }
 
-  Widget _buildHistoryTable(List<SessionHistory> history) {
+  Widget _buildHistoryTable(List<SessionHistory> history, Room room) {
     return DataTable(
       dataTextStyle: const TextStyle(color: Colors.white),
       headingTextStyle: const TextStyle(color: Colors.white),
@@ -533,6 +535,7 @@ class _DashboardPageState extends State<DashboardPage> {
         DataColumn(label: Text("End")),
         DataColumn(label: Text("Duration")),
         DataColumn(label: Text("Cost")),
+        DataColumn(label: Text("Details")),
       ],
       rows:
           history.asMap().entries.map((entry) {
@@ -549,6 +552,27 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 DataCell(Text(session.formattedDuration)),
                 DataCell(Text("${session.totalCost.toStringAsFixed(0)} \$")),
+                DataCell(
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => HistoryDetailsPage(
+                                sessionHistory: session,
+                                room: room,
+                              ),
+                        ),
+                      );
+                    },
+                    child: Icon(
+                      Icons.remove_red_eye,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
               ],
             );
           }).toList(),
