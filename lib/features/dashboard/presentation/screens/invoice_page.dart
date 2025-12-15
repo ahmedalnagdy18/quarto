@@ -4,6 +4,9 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class InvoicePage extends StatefulWidget {
   const InvoicePage({
@@ -22,6 +25,109 @@ class InvoicePage extends StatefulWidget {
 }
 
 class _HistoryDetailsPageState extends State<InvoicePage> {
+  Future<void> _printInvoice() async {
+    final pdf = pw.Document();
+
+    final double ordersTotal = widget.orderItem.fold(
+      0,
+      (sum, item) => sum + item.price,
+    );
+    final double grandTotal = widget.sessionHistory.totalCost + ordersTotal;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(
+                child: pw.Text(
+                  'QUARTO RECEIPT',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              pw.SizedBox(height: 6),
+              pw.Center(child: pw.Text(widget.room.name)),
+              pw.SizedBox(height: 20),
+
+              _pdfRow('Start Time', widget.sessionHistory.startTimeShort),
+              _pdfRow('End Time', widget.sessionHistory.endTimeShort),
+              _pdfRow('Duration', widget.sessionHistory.formattedDuration),
+
+              if (widget.sessionHistory.sessionTypeInfo.isNotEmpty)
+                _pdfRow('Type', widget.sessionHistory.sessionTypeInfo),
+
+              pw.Divider(),
+
+              if (widget.orderItem.isNotEmpty) ...[
+                pw.Text(
+                  'Drinks',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 8),
+                ...widget.orderItem.map(
+                  (order) => _pdfRow(
+                    order.name,
+                    '${order.price.toStringAsFixed(0)} \$',
+                  ),
+                ),
+                pw.Divider(),
+              ],
+
+              _pdfRow(
+                'Session Cost',
+                widget.sessionHistory.formattedCost,
+              ),
+              _pdfRow(
+                'Drinks Total',
+                '${ordersTotal.toStringAsFixed(0)} \$',
+              ),
+
+              pw.Divider(),
+
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'TOTAL',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    '${grandTotal.toStringAsFixed(0)} \$',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+              pw.Center(
+                child: pw.Text(
+                  'Thank you for playing',
+                  style: const pw.TextStyle(color: PdfColors.grey),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
   double get _ordersTotal {
     return widget.orderItem.fold(0, (sum, item) => sum + item.price);
   }
@@ -39,9 +145,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () {
-              // TODO: print receipt
-            },
+            onPressed: _printInvoice,
             icon: const Icon(Icons.print),
           ),
           const SizedBox(width: 20),
@@ -157,7 +261,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                 const SizedBox(height: 20),
 
                 Text(
-                  'Thank you for playing 🎮',
+                  'Thank you for playing',
                   style: AppTexts.smallBody.copyWith(color: Colors.grey),
                 ),
               ],
@@ -207,4 +311,20 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
       ),
     );
   }
+}
+
+pw.Widget _pdfRow(String title, String value) {
+  return pw.Padding(
+    padding: const pw.EdgeInsets.symmetric(vertical: 4),
+    child: pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(title),
+        pw.Text(
+          value,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+        ),
+      ],
+    ),
+  );
 }
