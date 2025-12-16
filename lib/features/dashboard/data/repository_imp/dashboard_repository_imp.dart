@@ -30,47 +30,64 @@ class DashboardRepositoryImp implements DashboardRepository {
       final occupiedRooms = rooms.where((r) => r.isOccupied).length;
       final freeRooms = rooms.length - occupiedRooms;
 
-      // ----------- TIME SETUP -----------
-      //   final now = DateTime.now();
-      //  final startOfDay = DateTime(now.year, now.month, now.day);
+      // ================= احسب دخل كل الغرف =================
+      double totalIncome = 0;
 
-      // // ================= TODAY INCOME =================
-      // final todayIncomeResponse = await supabase
-      //     .from('session_history')
-      //     .select('total_cost')
-      //     .gte('end_time', startOfDay.toIso8601String())
-      //     .not('end_time', 'is', null);
+      print("📊 Calculating income for all rooms:");
 
-      // double todayIncome = 0;
-      // for (var session in todayIncomeResponse) {
-      //   final cost = session['total_cost'];
-      //   if (cost != null) {
-      //     todayIncome += (cost as num).toDouble();
-      //   }
-      // }
-
-      // ================= ALL TIME INCOME =================
-      final allTimeIncomeResponse = await supabase
+      // تحقق من كل الجلسات في الداتابيز
+      final allSessions = await supabase
           .from('session_history')
-          .select('total_cost')
+          .select('id, total_cost, orders, start_time, room_id')
           .not('end_time', 'is', null);
 
-      double allTimeIncome = 0;
-      for (var session in allTimeIncomeResponse) {
-        final cost = session['total_cost'];
-        if (cost != null) {
-          allTimeIncome += (cost as num).toDouble();
+      print("\n🔍 ALL SESSIONS IN DATABASE:");
+      for (var session in allSessions) {
+        final cost = session['total_cost'] ?? 0;
+        final orders = session['orders'] ?? 0;
+        final sessionCost =
+            (cost as num).toDouble() - (orders as num).toDouble();
+        print(
+          "  - Session ${session['id']}: Total=$cost, Orders=$orders, Session Cost=${sessionCost.toStringAsFixed(2)}",
+        );
+      }
+
+      for (var room in rooms) {
+        try {
+          final roomHistoryResponse = await supabase
+              .from('session_history')
+              .select('total_cost, orders, start_time, end_time')
+              .eq('room_id', room.id)
+              .not('end_time', 'is', null);
+
+          double roomTotal = 0;
+          for (var session in roomHistoryResponse) {
+            final cost = session['total_cost'];
+            if (cost != null) {
+              roomTotal += (cost as num).toDouble();
+            }
+          }
+
+          if (roomTotal > 0) {
+            print("  - ${room.name}: ${roomTotal.toStringAsFixed(0)} \$");
+            totalIncome += roomTotal;
+          }
+        } catch (e) {
+          print("  - Error for ${room.name}: $e");
         }
       }
+
+      print("💰 FINAL TOTAL: ${totalIncome.toStringAsFixed(0)} \$");
 
       return {
         'totalRooms': rooms.length,
         'occupiedRooms': occupiedRooms,
         'freeRooms': freeRooms,
-        'todayIncome': allTimeIncome,
+        'todayIncome': totalIncome,
         'rooms': rooms,
       };
     } catch (e) {
+      print("❌ Error in getDashboardStats: $e");
       rethrow;
     }
   }
@@ -146,6 +163,8 @@ class DashboardRepositoryImp implements DashboardRepository {
         'hourly_rate': finalHourlyRate,
         'total_cost': 0.0,
         'created_at': now.toIso8601String(),
+        // REMOVE 'updated_at' if column doesn't exist
+        // 'updated_at': now.toIso8601String(),
       };
 
       if (psType != null) {
@@ -157,7 +176,6 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       await supabase.from('session_history').insert(sessionData);
     } catch (e) {
-      // print('Error starting session: $e');
       rethrow;
     }
   }
@@ -165,7 +183,7 @@ class DashboardRepositoryImp implements DashboardRepository {
   @override
   Future<void> endSession(String roomId) async {
     try {
-      final now = DateTime.now().toUtc(); // استخدام UTC
+      final now = DateTime.now().toUtc();
 
       // الحصول على بيانات الغرفة
       final room = await getRoom(roomId);
@@ -174,46 +192,83 @@ class DashboardRepositoryImp implements DashboardRepository {
         throw Exception('No active session found for room $roomId');
       }
 
-      // تحويل sessionStart إلى UTC للتأكد
+      // تحويل sessionStart إلى UTC
       final sessionStartUtc = room.sessionStart!.toUtc();
 
-      // التحقق من أن وقت البداية ليس في المستقبل
-      if (sessionStartUtc.isAfter(now)) {
-        // إذا كان وقت البداية في المستقبل، نستخدم وقت الآن
-      } else {
-        // حساب المدة بشكل صحيح
+      // البحث عن الجلسة النشطة
+      final activeSession = await _getActiveSession(roomId);
+
+      if (activeSession == null) {
+        throw Exception('No active session found in database');
+      }
+
+      // حساب تكلفة الجلسة
+      double sessionCost = 0;
+      if (!sessionStartUtc.isAfter(now)) {
         final duration = now.difference(sessionStartUtc);
         final hours = duration.inMinutes / 60.0;
-        final totalCost = (hours * room.hourlyRate);
-
-        // تحديث حالة الغرفة
-        await supabase
-            .from('rooms')
-            .update({
-              'is_occupied': false,
-              'session_start': null,
-              'updated_at': now.toIso8601String(),
-            })
-            .eq('id', roomId);
-
-        // البحث عن الجلسة النشطة
-        final activeSession = await _getActiveSession(roomId);
-
-        if (activeSession == null) {
-          throw Exception('No active session found in database');
-        }
-
-        // تحديث الجلسة
-        await supabase
-            .from('session_history')
-            .update({
-              'end_time': now.toIso8601String(),
-              'total_cost': totalCost,
-            })
-            .eq('id', activeSession['id']);
+        sessionCost = (hours * room.hourlyRate);
       }
+
+      // ⭐⭐ هنا المشكلة ⭐⭐
+      // بدل ما نأخذ room.orders (كل الأوردرات في تاريخ الغرفة)
+      // نأخذ الأوردرات الخاصة بالجلسة النشطة فقط
+
+      double existingOrdersCost = 0;
+
+      // خد الأوردرات من الجلسة النشطة
+      if (activeSession['orders_items'] != null) {
+        final currentOrdersList =
+            (activeSession['orders_items'] as List)
+                .map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+
+        if (currentOrdersList.isNotEmpty) {
+          existingOrdersCost = currentOrdersList.fold(
+            0.0,
+            (sum, item) => sum + item.price,
+          );
+        }
+      }
+
+      // الإجمالي = تكلفة الجلسة + الأوردرات
+      final totalCost = sessionCost + existingOrdersCost;
+
+      // ⭐ طباعة للتحقق
+      print("💵 End Session Calculation:");
+      print("- Room: ${room.name}");
+      print(
+        "- Session Duration: ${now.difference(sessionStartUtc).inMinutes} minutes",
+      );
+      print("- Hourly Rate: ${room.hourlyRate}");
+      print("- Session Cost: ${sessionCost.toStringAsFixed(2)}");
+      print("- Existing Orders Cost: ${existingOrdersCost.toStringAsFixed(2)}");
+      print("- TOTAL: ${totalCost.toStringAsFixed(2)}");
+
+      // تحديث حالة الغرفة
+      await supabase
+          .from('rooms')
+          .update({
+            'is_occupied': false,
+            'session_start': null,
+            'updated_at': now.toIso8601String(),
+          })
+          .eq('id', roomId);
+
+      // تحديث الجلسة
+      await supabase
+          .from('session_history')
+          .update({
+            'end_time': now.toIso8601String(),
+            'total_cost': totalCost,
+            'orders': existingOrdersCost,
+            'updated_at': now.toIso8601String(),
+          })
+          .eq('id', activeSession['id']);
+
+      print("✅ Session ended successfully");
     } catch (e) {
-      // print('Error ending session: $e');
+      print("❌ Error ending session: $e");
       rethrow;
     }
   }
@@ -321,6 +376,131 @@ class DashboardRepositoryImp implements DashboardRepository {
       // print('New day started successfully');
     } catch (e) {
       //  print('Error starting new day: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> addOrders(
+    String roomId,
+    List<OrderItem> orders, {
+    String? sessionId, //
+  }) async {
+    try {
+      if (orders.isEmpty) return;
+
+      print("🔵 addOrders called for room: $roomId, session: $sessionId");
+      print("- New orders: ${orders.length} items");
+      final newOrdersPrice = orders.fold(0.0, (sum, item) => sum + item.price);
+      print("- New orders price: $newOrdersPrice");
+
+      // 1. تحديث الغرفة
+      final room = await getRoom(roomId);
+      final updatedOrdersList = [...room.ordersList, ...orders];
+      final updatedOrdersTotal = updatedOrdersList.fold(
+        0.0,
+        (sum, item) => sum + item.price,
+      );
+
+      await supabase
+          .from('rooms')
+          .update({
+            'orders': updatedOrdersTotal,
+            'orders_items': updatedOrdersList.map((o) => o.toJson()).toList(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', roomId);
+
+      print("✅ Updated rooms table");
+
+      // 2. تحديث الجلسة في session_history
+      if (sessionId != null && sessionId.isNotEmpty) {
+        // جلب بيانات الجلسة الحالية
+        final sessionResponse =
+            await supabase
+                .from('session_history')
+                .select()
+                .eq('id', sessionId)
+                .single();
+
+        // Parse existing orders
+        final currentOrdersList =
+            (sessionResponse['orders_items'] as List?)
+                ?.map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
+                .toList() ??
+            [];
+
+        // ⭐⭐ هنا الفرق: newOrdersList للعرض فقط، لكن في الحساب نستخدم الجديدة بس
+        final newOrdersList = [...currentOrdersList, ...orders];
+        final newOrdersTotal = newOrdersList.fold(
+          0.0,
+          (sum, item) => sum + item.price,
+        );
+
+        // ⭐⭐ الحساب الصحيح: نضيف سعر الأوردرات الجديدة فقط
+        final currentTotalCost =
+            (sessionResponse['total_cost'] as num).toDouble();
+        final ordersToAdd = newOrdersPrice; // ⭐ بس الأوردرات الجديدة
+        final updatedTotalCost = currentTotalCost + ordersToAdd;
+
+        print("💵 Cost Calculation:");
+        print("- Current Total Cost: $currentTotalCost");
+        print("- New Orders Price: $ordersToAdd");
+        print("- Updated Total Cost: $updatedTotalCost");
+
+        // تحديث الجلسة
+        await supabase
+            .from('session_history')
+            .update({
+              'orders': newOrdersTotal, // الإجمالي الجديد لكل الأوردرات
+              'orders_items': newOrdersList.map((o) => o.toJson()).toList(),
+              'total_cost': updatedTotalCost, // ⭐ صحيح: تضيف الجديدة فقط
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', sessionId);
+
+        print("✅ Updated session_history table for session: $sessionId");
+      } else {
+        // إذا sessionId مش موجود، نبحث عن الجلسة النشطة
+        final activeSession = await _getActiveSession(roomId);
+        if (activeSession != null) {
+          final currentOrdersList =
+              (activeSession['orders_items'] as List?)
+                  ?.map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
+                  .toList() ??
+              [];
+
+          final newOrdersList = [...currentOrdersList, ...orders];
+          final newOrdersTotal = newOrdersList.fold(
+            0.0,
+            (sum, item) => sum + item.price,
+          );
+
+          // نفس المنطق: نضيف الجديدة فقط
+          final currentTotalCost =
+              (activeSession['total_cost'] as num).toDouble();
+          final ordersToAdd = newOrdersPrice;
+          final updatedTotalCost = currentTotalCost + ordersToAdd;
+
+          await supabase
+              .from('session_history')
+              .update({
+                'orders': newOrdersTotal,
+                'orders_items': newOrdersList.map((o) => o.toJson()).toList(),
+                'total_cost': updatedTotalCost,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', activeSession['id']);
+
+          print("✅ Updated active session in session_history");
+        } else {
+          print("⚠️ No active session found for room: $roomId");
+        }
+      }
+
+      print("🎉 Orders added successfully to both tables!");
+    } catch (e) {
+      print("❌ Error in addOrders: $e");
       rethrow;
     }
   }

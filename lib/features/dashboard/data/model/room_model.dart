@@ -7,6 +7,8 @@ class Room {
   final bool isVip;
   final String? psType;
   final bool? isMulti;
+  final double? orders; // مجموع الأوردرات
+  final List<OrderItem> ordersList; // الأصناف نفسها
 
   Room({
     required this.id,
@@ -17,10 +19,11 @@ class Room {
     this.isVip = false,
     this.psType,
     this.isMulti,
+    this.orders,
+    this.ordersList = const [],
   });
 
   factory Room.fromJson(Map<String, dynamic> json) {
-    // دالة مساعدة لتحليل الوقت
     DateTime? parseDateTime(dynamic value) {
       if (value == null) return null;
       if (value is DateTime) return value.toLocal();
@@ -28,11 +31,17 @@ class Room {
         try {
           return DateTime.parse(value).toLocal();
         } catch (e) {
-          // print('Error parsing datetime: $value, error: $e');
           return null;
         }
       }
       return null;
+    }
+
+    List<OrderItem> parseOrders(dynamic value) {
+      if (value is List) {
+        return value.map((e) => OrderItem.fromJson(e)).toList();
+      }
+      return [];
     }
 
     return Room(
@@ -44,10 +53,38 @@ class Room {
       isVip: json['is_vip'] == true,
       psType: json['ps_type'] as String?,
       isMulti: json['is_multi'] as bool?,
+      orders: (json['orders'] as num?)?.toDouble() ?? 0,
+      ordersList: parseOrders(json['orders_items']),
     );
   }
 
-  // Helper method to get room type description
+  double get ordersTotal => ordersList.fold(0, (sum, item) => sum + item.price);
+
+  // حساب تكلفة الجلسة الحالية
+  double get calculatedCost {
+    if (sessionStart == null) return 0.0;
+    final now = DateTime.now();
+    final start = sessionStart!;
+    if (start.isAfter(now)) return 0.0;
+    final duration = now.difference(start);
+    final hours = duration.inMinutes / 60.0;
+    final cost = hours * hourlyRate;
+    return cost < 0 ? 0.0 : cost;
+  }
+
+  String get formattedCurrentCost => '${calculatedCost.toStringAsFixed(0)} \$';
+
+  // -------- Live Duration و Room Type Description --------
+  String get liveDuration {
+    if (sessionStart == null) return '0h 0m';
+    final now = DateTime.now();
+    final duration = now.difference(sessionStart!);
+    if (duration.isNegative) return '0h 0m';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    return '${hours}h ${minutes}m';
+  }
+
   String get roomTypeDescription {
     if (name.toLowerCase().contains('room 8') ||
         name.toLowerCase().contains('room8')) {
@@ -69,58 +106,26 @@ class Room {
     if (isMulti == false) return 'Single';
     return null;
   }
+}
 
-  // تصحيح حساب المدة
-  String get liveDuration {
-    if (sessionStart == null) return '0h 0m';
+class OrderItem {
+  final String name;
+  final double price;
 
-    final now = DateTime.now();
-    final start = sessionStart!;
+  OrderItem({
+    required this.name,
+    required this.price,
+  });
 
-    // التحقق من أن وقت البداية ليس في المستقبل
-    if (start.isAfter(now)) {
-      return '0h 0m';
-    }
-
-    final duration = now.difference(start);
-
-    // إذا كانت المدة سلبية، نعيد صفر
-    if (duration.isNegative) {
-      return '0h 0m';
-    }
-
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    return '${hours}h ${minutes}m';
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    return OrderItem(
+      name: json['name'] as String,
+      price: (json['price'] as num).toDouble(),
+    );
   }
 
-  // تصحيح حساب التكلفة
-  double get calculatedCost {
-    if (sessionStart == null) return 0.0;
-
-    final now = DateTime.now();
-    final start = sessionStart!;
-
-    // التحقق من أن وقت البداية ليس في المستقبل
-    if (start.isAfter(now)) {
-      return 0.0;
-    }
-
-    final duration = now.difference(start);
-
-    // إذا كانت المدة سلبية، نعيد صفر
-    if (duration.isNegative) {
-      return 0.0;
-    }
-
-    final hours = duration.inMinutes / 60.0;
-    final cost = (hours * hourlyRate);
-
-    // التأكد من أن التكلفة ليست سلبية
-    return cost < 0 ? 0.0 : cost;
-  }
-
-  String get formattedCurrentCost {
-    return '${calculatedCost.toStringAsFixed(0)} \$';
-  }
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'price': price,
+  };
 }

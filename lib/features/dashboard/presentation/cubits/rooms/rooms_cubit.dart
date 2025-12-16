@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
+import 'package:quarto/features/dashboard/domain/usecases/add_orders_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_all_rooms_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/start_session_usecase.dart';
@@ -14,12 +15,14 @@ class RoomsCubit extends Cubit<RoomsState> {
   final GetAllRoomsUsecase getAllRoomsUsecase;
   final StartSessionUsecase startSessionUsecase;
   final EndSessionUsecase endSessionUsecase;
+  final AddOrdersUsecase addOrdersUsecase;
 
   RoomsCubit({
     required this.getDashboardStatsUsecase,
     required this.getAllRoomsUsecase,
     required this.startSessionUsecase,
     required this.endSessionUsecase,
+    required this.addOrdersUsecase,
   }) : super(RoomsInitial());
 
   Future<void> loadRoomsAndStats() async {
@@ -67,5 +70,23 @@ class RoomsCubit extends Cubit<RoomsState> {
 
   Future<void> refresh() async {
     await loadRoomsAndStats();
+  }
+
+  Future<void> addOrders(
+    String roomId,
+    List<OrderItem> orders, {
+    String? sessionId,
+  }) async {
+    print("RoomsCubit.addOrders called with $orders, sessionId: $sessionId");
+    emit(RoomsLoading());
+    try {
+      await addOrdersUsecase(roomId, orders, sessionId: sessionId);
+      emit(RoomOrdersAdded());
+      print("Orders added successfully");
+      await loadRoomsAndStats();
+    } catch (e) {
+      print("Error in addOrders: $e");
+      emit(RoomsError(e.toString()));
+    }
   }
 }

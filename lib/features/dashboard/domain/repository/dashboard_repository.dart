@@ -17,4 +17,9 @@ abstract class DashboardRepository {
   Future<void> resetAllSessions();
   Future<void> clearAllHistory();
   Future<void> startNewDay();
+  Future<void> addOrders(
+    String roomId,
+    List<OrderItem> orders, {
+    String? sessionId,
+  });
 }

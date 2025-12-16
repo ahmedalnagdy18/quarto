@@ -33,3 +33,5 @@ class RoomsError extends RoomsState {
 
   RoomsError(this.message);
 }
+
+class RoomOrdersAdded extends RoomsState {}

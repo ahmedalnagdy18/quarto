@@ -6,10 +6,10 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
-import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
 
 class InvoicePage extends StatefulWidget {
   const InvoicePage({
@@ -21,22 +21,35 @@ class InvoicePage extends StatefulWidget {
 
   final SessionHistory sessionHistory;
   final Room room;
-  final List<OrderItem> orderItem;
+  final List<OrderItemData> orderItem;
 
   @override
-  State<InvoicePage> createState() => _HistoryDetailsPageState();
+  State<InvoicePage> createState() => _InvoicePageState();
 }
 
-class _HistoryDetailsPageState extends State<InvoicePage> {
+class _InvoicePageState extends State<InvoicePage> {
+  // حساب تكلفة الجلسة بدون أوردرات
+  double get _sessionCost {
+    if (widget.sessionHistory.endTime == null) return 0.0;
+    final duration = widget.sessionHistory.endTime!.difference(
+      widget.sessionHistory.startTime,
+    );
+    final hours = duration.inMinutes / 60.0;
+    return hours * widget.sessionHistory.hourlyRate;
+  }
+
+  // حساب إجمالي الأوردرات
+  double get _ordersTotal {
+    return widget.orderItem.fold<double>(0.0, (sum, item) => sum + item.price);
+  }
+
+  // حساب الإجمالي النهائي
+  double get _grandTotal {
+    return _sessionCost + _ordersTotal;
+  }
+
   Future<pw.Document> _buildPdf() async {
     final pdf = pw.Document();
-
-    final double ordersTotal = widget.orderItem.fold(
-      0,
-      (sum, item) => sum + item.price,
-    );
-
-    final double grandTotal = widget.sessionHistory.totalCost + ordersTotal;
 
     pdf.addPage(
       pw.Page(
@@ -82,13 +95,15 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                 pdfDashedDivider(),
               ],
 
+              // ⭐⭐ هنا التصحيح: Session Cost بس بدون أوردرات ⭐⭐
               _pdfRow(
                 'Session Cost',
-                widget.sessionHistory.formattedCost,
+                '${_sessionCost.toStringAsFixed(0)} \$',
               ),
+
               _pdfRow(
                 'Drinks Total',
-                '${ordersTotal.toStringAsFixed(0)} \$',
+                '${_ordersTotal.toStringAsFixed(0)} \$',
               ),
 
               pdfDashedDivider(),
@@ -104,7 +119,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                     ),
                   ),
                   pw.Text(
-                    '${grandTotal.toStringAsFixed(0)} \$',
+                    '${_grandTotal.toStringAsFixed(0)} \$',
                     style: pw.TextStyle(
                       fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
@@ -162,10 +177,6 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
     );
   }
 
-  double get _ordersTotal {
-    return widget.orderItem.fold(0, (sum, item) => sum + item.price);
-  }
-
   pw.Widget pdfDashedDivider() {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 12),
@@ -185,8 +196,6 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
 
   @override
   Widget build(BuildContext context) {
-    final double grandTotal = widget.sessionHistory.totalCost + _ordersTotal;
-
     return Scaffold(
       backgroundColor: AppColors.bgCard,
       appBar: AppBar(
@@ -282,9 +291,10 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                 ],
 
                 // -------- TOTALS --------
+                // ⭐⭐ هنا التصحيح ⭐⭐
                 _row(
                   title: 'Session Cost',
-                  value: widget.sessionHistory.formattedCost,
+                  value: '${_sessionCost.toStringAsFixed(0)} \$',
                 ),
                 _row(
                   title: 'Drinks Total',
@@ -304,7 +314,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                       ),
                     ),
                     Text(
-                      '${grandTotal.toStringAsFixed(0)} \$',
+                      '${_grandTotal.toStringAsFixed(0)} \$',
                       style: AppTexts.meduimHeading.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.black,

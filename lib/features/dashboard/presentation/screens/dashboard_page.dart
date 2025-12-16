@@ -176,21 +176,6 @@ class _DashboardPageState extends State<DashboardPage> {
     context.read<SessionHistoryCubit>().loadRoomHistory(room.id);
   }
 
-  double _calculateTotalForSelectedRoom(List<SessionHistory> history) {
-    try {
-      double total = 0.0;
-      for (var session in history) {
-        if (session.endTime != null) {
-          total += session.totalCost;
-        }
-      }
-      return total;
-    } catch (e) {
-      // print('Error calculating total: $e');
-      return 0.0;
-    }
-  }
-
   String _formatTime(DateTime? time) {
     return TimeFormatter.formatTo12Hour(time);
   }
@@ -268,8 +253,8 @@ class _DashboardPageState extends State<DashboardPage> {
         }
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          height: 140,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          height: 160, // زد الارتفاع قليلاً
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -279,16 +264,42 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatColumn("Total Free Rooms", freeRooms.toString(), state),
+              _buildStatColumn("Free Rooms", freeRooms.toString(), state),
               _buildStatColumn(
-                "Total Occupied Rooms",
+                "Occupied Rooms",
                 occupiedRooms.toString(),
                 state,
               ),
-              _buildStatColumn(
-                "Today Income",
-                "${todayIncome.toStringAsFixed(0)} \$",
-                state,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text("Today Income", style: AppTexts.smallHeading),
+                  const SizedBox(height: 8),
+                  if (state is DashboardLoading)
+                    const AppLoadingWidget()
+                  else if (state is DashboardError)
+                    Text("Error", style: AppTexts.largeHeading)
+                  else
+                    Column(
+                      children: [
+                        Text(
+                          "${todayIncome.toStringAsFixed(0)} \$",
+                          style: AppTexts.largeHeading.copyWith(
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "(Sessions + Orders)",
+                          style: AppTexts.smallBody.copyWith(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
               IconButton(
                 onPressed: () {
@@ -300,7 +311,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     );
                   }
                 },
-                icon: Icon(Icons.refresh),
+                icon: Icon(Icons.refresh, color: Colors.white),
+                tooltip: 'Refresh all data',
               ),
             ],
           ),
@@ -522,6 +534,15 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHistoryTable(List<SessionHistory> history, Room room) {
+    // دالة مساعدة لحساب تكلفة الجلسة بدون الأوردرات
+    double calculateSessionCost(SessionHistory session) {
+      if (session.endTime == null) return 0.0;
+
+      final duration = session.endTime!.difference(session.startTime);
+      final hours = duration.inMinutes / 60.0;
+      return hours * session.hourlyRate;
+    }
+
     return DataTable(
       dataTextStyle: const TextStyle(color: Colors.white),
       headingTextStyle: const TextStyle(color: Colors.white),
@@ -534,13 +555,20 @@ class _DashboardPageState extends State<DashboardPage> {
         DataColumn(label: Text("Start")),
         DataColumn(label: Text("End")),
         DataColumn(label: Text("Duration")),
-        DataColumn(label: Text("Cost")),
+        DataColumn(label: Text("Session")), // تكلفة الجلسة فقط
+        DataColumn(label: Text("Orders")), // تكلفة الأوردرات فقط
+        DataColumn(label: Text("Total")), // الإجمالي (الجلسة + الأوردرات)
         DataColumn(label: Text("Details")),
       ],
       rows:
           history.asMap().entries.map((entry) {
             final index = entry.key;
             final session = entry.value;
+
+            final sessionCost = calculateSessionCost(session);
+            final ordersCost = session.ordersTotal;
+            final totalCost = sessionCost + ordersCost;
+
             return DataRow(
               cells: [
                 DataCell(Text("${index + 1}")),
@@ -551,7 +579,24 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 DataCell(Text(session.formattedDuration)),
-                DataCell(Text("${session.totalCost.toStringAsFixed(0)} \$")),
+                DataCell(Text("${sessionCost.toStringAsFixed(0)} \$")),
+                DataCell(
+                  Text(
+                    "${ordersCost.toStringAsFixed(0)} \$",
+                    style: TextStyle(
+                      color: ordersCost > 0 ? Colors.green : Colors.grey,
+                    ),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    "${totalCost.toStringAsFixed(0)} \$",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                ),
                 DataCell(
                   InkWell(
                     onTap: () {
@@ -562,6 +607,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               (context) => HistoryDetailsPage(
                                 sessionHistory: session,
                                 room: room,
+                                sessionId: session.id,
                               ),
                         ),
                       );
@@ -580,7 +626,31 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTotalDay(List<SessionHistory> history) {
-    final total = _calculateTotalForSelectedRoom(history);
+    // دالة مساعدة لحساب التفاصيل
+    (double, double, double) calculateDetailedTotal(
+      List<SessionHistory> history,
+    ) {
+      double sessionCosts = 0.0;
+      double ordersCosts = 0.0;
+      double total = 0.0;
+
+      for (var session in history) {
+        if (session.endTime != null) {
+          final duration = session.endTime!.difference(session.startTime);
+          final hours = duration.inMinutes / 60.0;
+          final sessionCost = hours * session.hourlyRate;
+          final ordersCost = session.ordersTotal;
+
+          sessionCosts += sessionCost;
+          ordersCosts += ordersCost;
+          total += (sessionCost + ordersCost);
+        }
+      }
+
+      return (sessionCosts, ordersCosts, total);
+    }
+
+    final (sessionCosts, ordersCosts, total) = calculateDetailedTotal(history);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -588,13 +658,55 @@ class _DashboardPageState extends State<DashboardPage> {
         color: AppColors.bgCardLight,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Total of day:", style: AppTexts.meduimBody),
-          Text(
-            "${total.toStringAsFixed(0)} \$",
-            style: AppTexts.largeHeading.copyWith(color: AppColors.primaryBlue),
+          const SizedBox(height: 8),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Session Costs:", style: AppTexts.smallBody),
+              Text(
+                "${sessionCosts.toStringAsFixed(0)} \$",
+                style: AppTexts.smallBody.copyWith(color: Colors.white70),
+              ),
+            ],
+          ),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Orders Costs:", style: AppTexts.smallBody),
+              Text(
+                "${ordersCosts.toStringAsFixed(0)} \$",
+                style: AppTexts.meduimBody.copyWith(
+                  color: ordersCosts > 0 ? Colors.green : Colors.white70,
+                ),
+              ),
+            ],
+          ),
+
+          const Divider(color: Colors.grey, height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "TOTAL:",
+                style: AppTexts.meduimBody.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "${total.toStringAsFixed(0)} \$",
+                style: AppTexts.largeHeading.copyWith(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ],
       ),

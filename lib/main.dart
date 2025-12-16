@@ -25,8 +25,8 @@ void main() async {
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(1000, 700),
-    minimumSize: Size(950, 600), // 👈 هنا بتحدد أقل حجم ممكن
+    size: Size(1200, 700),
+    minimumSize: Size(1200, 700), // 👈 هنا بتحدد أقل حجم ممكن
     center: true,
     backgroundColor: Colors.transparent,
   );
@@ -63,6 +63,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create:
               (context) => RoomsCubit(
+                addOrdersUsecase: sl(),
                 getDashboardStatsUsecase: sl(),
                 getAllRoomsUsecase: sl(),
                 endSessionUsecase: sl(),

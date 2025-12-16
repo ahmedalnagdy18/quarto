@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/invoice_page.dart';
 
 /// -------- LOCAL ORDER MODEL (NO IMPACT ON YOUR MODELS) --------
-class OrderItem {
+class OrderItemData {
   final String name;
   final double price;
 
-  OrderItem({required this.name, required this.price});
+  OrderItemData({required this.name, required this.price});
 }
 
 class HistoryDetailsPage extends StatefulWidget {
@@ -19,16 +21,20 @@ class HistoryDetailsPage extends StatefulWidget {
     super.key,
     required this.sessionHistory,
     required this.room,
+    required this.sessionId,
   });
 
   final SessionHistory sessionHistory;
   final Room room;
+  final String sessionId;
 
   @override
   State<HistoryDetailsPage> createState() => _HistoryDetailsPageState();
 }
 
 class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
+  final List<OrderItemData> _orders = [];
+  List<OrderItemData> _existingOrders = [];
   void _addOrderDialog() {
     String selectedDrink = 'Water';
     final priceController = TextEditingController();
@@ -97,7 +103,7 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                 if (price != null) {
                   setState(() {
                     _orders.add(
-                      OrderItem(name: selectedDrink, price: price),
+                      OrderItemData(name: selectedDrink, price: price),
                     );
                   });
                   Navigator.pop(context);
@@ -111,13 +117,48 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
     );
   }
 
-  final List<OrderItem> _orders = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingOrders();
+  }
 
-  double get _ordersTotal => _orders.fold(0, (sum, item) => sum + item.price);
+  void _loadExistingOrders() {
+    // تحويل ordersList من SessionHistory إلى OrderItemData
+    _existingOrders =
+        widget.sessionHistory.ordersList
+            .map(
+              (orderItem) => OrderItemData(
+                name: orderItem.name,
+                price: orderItem.price,
+              ),
+            )
+            .toList();
+  }
+
+  // دالة لحساب تكلفة الجلسة بدون أوردرات
+  double _calculateSessionCost() {
+    if (widget.sessionHistory.endTime == null) return 0.0;
+    final duration = widget.sessionHistory.endTime!.difference(
+      widget.sessionHistory.startTime,
+    );
+    final hours = duration.inMinutes / 60.0;
+    return hours * widget.sessionHistory.hourlyRate;
+  }
+
+  // حساب الأوردرات الجديدة فقط
+  double get _newOrdersTotal {
+    return _orders.fold<double>(0.0, (sum, item) => sum + item.price);
+  }
+
+  // حساب الأوردرات الموجودة فقط
+  double get _existingOrdersTotal {
+    return _existingOrders.fold<double>(0.0, (sum, item) => sum + item.price);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final grandTotal = widget.sessionHistory.totalCost + _ordersTotal;
+    final sessionCost = _calculateSessionCost();
 
     return Scaffold(
       backgroundColor: AppColors.bgCard,
@@ -127,121 +168,213 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
         title: Text(widget.room.name, style: AppTexts.smallHeading),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (_) => InvoicePage(
-                        sessionHistory: widget.sessionHistory,
-                        room: widget.room,
-                        orderItem: _orders,
-                      ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: SizedBox(
-            width: 520,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _section(
-                  title: 'SESSION INFO',
-                  child: Column(
-                    children: [
-                      _row('Start', widget.sessionHistory.startTimeShort),
-                      _row('End', widget.sessionHistory.endTimeShort),
-                      _row(
-                        'Duration',
-                        widget.sessionHistory.formattedDuration,
-                      ),
-                      if (widget.sessionHistory.sessionTypeInfo.isNotEmpty)
-                        _row(
-                          'Type',
-                          widget.sessionHistory.sessionTypeInfo,
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => InvoicePage(
+                          sessionHistory: widget.sessionHistory,
+                          room: widget.room,
+                          orderItem: _existingOrders,
                         ),
-                    ],
                   ),
-                ),
-
-                const SizedBox(height: 16),
-
-                _section(
-                  title: 'DRINKS',
-                  trailing: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    onPressed: _addOrderDialog,
-                  ),
-                  child:
-                      _orders.isEmpty
-                          ? Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              'No drinks added',
-                              style: AppTexts.smallBody.copyWith(
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                          : Column(
-                            children:
-                                _orders.map((order) {
-                                  return _row(
-                                    order.name,
-                                    '${order.price.toStringAsFixed(0)} \$',
-                                    trailing: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _orders.remove(order);
-                                        });
-                                      },
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 16,
-                                        color: Colors.redAccent,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                ),
-
-                const SizedBox(height: 16),
-
-                _section(
-                  title: 'SUMMARY',
-                  child: Column(
-                    children: [
-                      _row(
-                        'Session Cost',
-                        widget.sessionHistory.formattedCost,
-                      ),
-                      _row(
-                        'Drinks',
-                        '${_ordersTotal.toStringAsFixed(0)} \$',
-                      ),
-                      const Divider(color: Colors.grey),
-                      _row(
-                        'TOTAL',
-                        '${grandTotal.toStringAsFixed(0)} \$',
-                        isTotal: true,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                );
+              },
+              icon: Icon(Icons.receipt),
             ),
           ),
-        ),
+        ],
+      ),
+      body: BlocConsumer<RoomsCubit, RoomsState>(
+        listener: (context, state) {
+          if (state is RoomOrdersAdded) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Orders added successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+
+            Navigator.pop(context);
+          }
+        },
+        builder: (context, state) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: SizedBox(
+                width: 520,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _section(
+                      title: 'SESSION INFO',
+                      child: Column(
+                        children: [
+                          _row(
+                            'Start',
+                            widget.sessionHistory.startTimeShort,
+                          ),
+                          _row('End', widget.sessionHistory.endTimeShort),
+                          _row(
+                            'Duration',
+                            widget.sessionHistory.formattedDuration,
+                          ),
+                          if (widget.sessionHistory.sessionTypeInfo.isNotEmpty)
+                            _row(
+                              'Type',
+                              widget.sessionHistory.sessionTypeInfo,
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _section(
+                      title: 'DRINKS',
+                      trailing: IconButton(
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        onPressed: _addOrderDialog,
+                      ),
+                      child:
+                          _existingOrders.isEmpty && _orders.isEmpty
+                              ? Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Text(
+                                  'No drinks added',
+                                  style: AppTexts.smallBody.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              )
+                              : Column(
+                                children: [
+                                  // عرض الـ orders الموجودة مسبقاً
+                                  ..._existingOrders.map((order) {
+                                    return _row(
+                                      order.name,
+                                      '${order.price.toStringAsFixed(0)} \$',
+                                      trailing: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(
+                                            0.2,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Saved',
+                                          style: AppTexts.smallBody.copyWith(
+                                            fontSize: 10,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+
+                                  // عرض الـ orders الجديدة
+                                  ..._orders.map((order) {
+                                    return _row(
+                                      order.name,
+                                      '${order.price.toStringAsFixed(0)} \$',
+                                      trailing: InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _orders.remove(order);
+                                          });
+                                        },
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    _section(
+                      title: 'SUMMARY',
+                      child: Column(
+                        children: [
+                          // Option 1: تفصيلي
+                          _row(
+                            'Session Time Cost',
+                            '${sessionCost.toStringAsFixed(0)} \$',
+                          ),
+
+                          _row(
+                            'Drinks',
+                            '${_existingOrdersTotal.toStringAsFixed(0)} \$',
+                          ),
+
+                          if (_orders.isNotEmpty)
+                            _row(
+                              'New Drinks',
+                              '+ ${_newOrdersTotal.toStringAsFixed(0)} \$',
+                            ),
+
+                          const Divider(color: Colors.grey),
+
+                          _row(
+                            'TOTAL',
+                            '${(widget.sessionHistory.totalCost + _newOrdersTotal).toStringAsFixed(0)} \$',
+                            isTotal: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(
+                          AppColors.primaryBlue,
+                        ),
+                        foregroundColor: MaterialStatePropertyAll(
+                          Colors.white,
+                        ),
+                      ),
+                      onPressed: () {
+                        if (_orders.isNotEmpty) {
+                          final ordersToSend =
+                              _orders
+                                  .map(
+                                    (o) => OrderItem(
+                                      name: o.name,
+                                      price: o.price,
+                                    ),
+                                  )
+                                  .toList();
+
+                          // ⭐ أضف sessionId هنا
+                          context.read<RoomsCubit>().addOrders(
+                            widget.room.id,
+                            ordersToSend,
+                            sessionId: widget.sessionId, // ⭐ أرسل ID الجلسة
+                          );
+                        }
+                      },
+                      child: const Text('Add'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
