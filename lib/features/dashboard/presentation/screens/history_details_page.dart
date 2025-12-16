@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,6 +35,7 @@ class HistoryDetailsPage extends StatefulWidget {
 }
 
 class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
+  final isMobile = Platform.isIOS || Platform.isAndroid;
   final List<OrderItemData> _orders = [];
   List<OrderItemData> _existingOrders = [];
   void _addOrderDialog() {
@@ -168,25 +171,27 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
         title: Text(widget.room.name, style: AppTexts.smallHeading),
         centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => InvoicePage(
-                          sessionHistory: widget.sessionHistory,
-                          room: widget.room,
-                          orderItem: _existingOrders,
-                        ),
-                  ),
-                );
-              },
-              icon: Icon(Icons.receipt),
-            ),
-          ),
+          isMobile
+              ? SizedBox()
+              : Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => InvoicePage(
+                              sessionHistory: widget.sessionHistory,
+                              room: widget.room,
+                              orderItem: _existingOrders,
+                            ),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.receipt),
+                ),
+              ),
         ],
       ),
       body: BlocConsumer<RoomsCubit, RoomsState>(
@@ -238,10 +243,16 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
 
                     _section(
                       title: 'DRINKS',
-                      trailing: IconButton(
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        onPressed: _addOrderDialog,
-                      ),
+                      trailing:
+                          isMobile
+                              ? SizedBox()
+                              : IconButton(
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _addOrderDialog,
+                              ),
                       child:
                           _existingOrders.isEmpty && _orders.isEmpty
                               ? Padding(
@@ -338,37 +349,39 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                       ),
                     ),
                     SizedBox(height: 16),
-                    ElevatedButton(
-                      style: ButtonStyle(
-                        backgroundColor: MaterialStatePropertyAll(
-                          AppColors.primaryBlue,
-                        ),
-                        foregroundColor: MaterialStatePropertyAll(
-                          Colors.white,
-                        ),
-                      ),
-                      onPressed: () {
-                        if (_orders.isNotEmpty) {
-                          final ordersToSend =
-                              _orders
-                                  .map(
-                                    (o) => OrderItem(
-                                      name: o.name,
-                                      price: o.price,
-                                    ),
-                                  )
-                                  .toList();
+                    isMobile
+                        ? SizedBox()
+                        : ElevatedButton(
+                          style: ButtonStyle(
+                            backgroundColor: MaterialStatePropertyAll(
+                              AppColors.primaryBlue,
+                            ),
+                            foregroundColor: MaterialStatePropertyAll(
+                              Colors.white,
+                            ),
+                          ),
+                          onPressed: () {
+                            if (_orders.isNotEmpty) {
+                              final ordersToSend =
+                                  _orders
+                                      .map(
+                                        (o) => OrderItem(
+                                          name: o.name,
+                                          price: o.price,
+                                        ),
+                                      )
+                                      .toList();
 
-                          // ⭐ أضف sessionId هنا
-                          context.read<RoomsCubit>().addOrders(
-                            widget.room.id,
-                            ordersToSend,
-                            sessionId: widget.sessionId, // ⭐ أرسل ID الجلسة
-                          );
-                        }
-                      },
-                      child: const Text('Add'),
-                    ),
+                              // ⭐ أضف sessionId هنا
+                              context.read<RoomsCubit>().addOrders(
+                                widget.room.id,
+                                ordersToSend,
+                                sessionId: widget.sessionId, // ⭐ أرسل ID الجلسة
+                              );
+                            }
+                          },
+                          child: const Text('Add'),
+                        ),
                   ],
                 ),
               ),

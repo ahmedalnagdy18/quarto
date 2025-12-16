@@ -44,7 +44,7 @@ class ExportSessionsButton extends StatelessWidget {
           final excel = Excel.createExcel();
           final Sheet sheet = excel['Rooms & History'];
 
-          // Header
+          // ⭐⭐ Header مع التحديثات ⭐⭐
           sheet.appendRow([
             'Room Name',
             'Hourly Rate',
@@ -52,17 +52,27 @@ class ExportSessionsButton extends StatelessWidget {
             'Session Start',
             'Session End',
             'Duration',
-            'Cost',
+            'Session Cost', // ⭐ تكلفة الجلسة بدون أوردرات
+            'Orders Cost', // ⭐ تكلفة الأوردرات
+            'Total Cost', // ⭐ الإجمالي (الجلسة + الأوردرات)
+            'Orders Count', // ⭐ عدد الأوردرات
+            'Orders Details', // ⭐ تفاصيل الأوردرات
           ]);
 
-          double totalCostAllRooms = 0.0;
+          double totalSessionCostAllRooms = 0.0;
+          double totalOrdersCostAllRooms = 0.0;
+          double grandTotalAllRooms = 0.0;
+          int totalOrdersCount = 0;
 
           for (var room in rooms) {
             final history = await historyCubit.getRoomHistoryUsecase(
               roomId: room.id,
             );
 
-            double totalCost = 0.0;
+            double roomSessionCost = 0.0;
+            double roomOrdersCost = 0.0;
+            double roomTotalCost = 0.0;
+            int roomOrdersCount = 0;
 
             if (history.isEmpty) {
               sheet.appendRow([
@@ -73,10 +83,41 @@ class ExportSessionsButton extends StatelessWidget {
                 '',
                 '',
                 '',
+                '',
+                '',
+                '',
+                '',
               ]);
             } else {
               for (var session in history) {
-                totalCost += session.totalCost;
+                // حساب تكلفة الجلسة بدون أوردرات
+                double sessionCost = 0.0;
+                if (session.endTime != null) {
+                  final duration = session.endTime!.difference(
+                    session.startTime,
+                  );
+                  final hours = duration.inMinutes / 60.0;
+                  sessionCost = hours * session.hourlyRate;
+                }
+
+                // حساب تكلفة الأوردرات
+                final ordersCost = session.ordersTotal;
+                final totalCost = sessionCost + ordersCost;
+
+                // عد الأوردرات
+                final ordersCount = session.ordersList.length;
+
+                // تجميع إحصائيات الغرفة
+                roomSessionCost += sessionCost;
+                roomOrdersCost += ordersCost;
+                roomTotalCost += totalCost;
+                roomOrdersCount += ordersCount;
+
+                // جمع الأسماء والأسعار للأوردرات
+                String ordersDetails = session.ordersList
+                    .map((order) => '${order.name}: ${order.price}\$')
+                    .join(', ');
+
                 sheet.appendRow([
                   room.name,
                   room.hourlyRate.toStringAsFixed(2),
@@ -84,10 +125,15 @@ class ExportSessionsButton extends StatelessWidget {
                   session.startTimeShort,
                   session.endTime != null ? session.endTimeShort : 'Running',
                   session.formattedDuration,
-                  session.totalCost.toStringAsFixed(2),
+                  sessionCost.toStringAsFixed(2), // تكلفة الجلسة
+                  ordersCost.toStringAsFixed(2), // تكلفة الأوردرات
+                  totalCost.toStringAsFixed(2), // الإجمالي
+                  ordersCount.toString(), // عدد الأوردرات
+                  ordersDetails, // تفاصيل الأوردرات
                 ]);
               }
-              // Add total row for this room
+
+              // Add summary row for this room
               sheet.appendRow([
                 '',
                 '',
@@ -95,16 +141,38 @@ class ExportSessionsButton extends StatelessWidget {
                 '',
                 '',
                 '',
-                'Total Cost',
-                totalCost.toStringAsFixed(2),
+                'Room Total Session Cost',
+                'Room Total Orders Cost',
+                'Room Total Cost',
+                'Room Total Orders',
+                '',
               ]);
-            }
 
-            totalCostAllRooms += totalCost;
-            sheet.appendRow([]);
+              sheet.appendRow([
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                roomSessionCost.toStringAsFixed(2),
+                roomOrdersCost.toStringAsFixed(2),
+                roomTotalCost.toStringAsFixed(2),
+                roomOrdersCount.toString(),
+                '',
+              ]);
+
+              // تحديث الإجماليات العامة
+              totalSessionCostAllRooms += roomSessionCost;
+              totalOrdersCostAllRooms += roomOrdersCost;
+              grandTotalAllRooms += roomTotalCost;
+              totalOrdersCount += roomOrdersCount;
+
+              sheet.appendRow([]);
+            }
           }
 
-          // Add grand total for all rooms at the end
+          // Add grand totals for all rooms
           sheet.appendRow([]);
           sheet.appendRow([
             '',
@@ -113,9 +181,67 @@ class ExportSessionsButton extends StatelessWidget {
             '',
             '',
             '',
-            'Grand Total Cost',
-            totalCostAllRooms.toStringAsFixed(2),
+            'GRAND TOTAL SESSION COST',
+            'GRAND TOTAL ORDERS COST',
+            'GRAND TOTAL COST',
+            'TOTAL ORDERS COUNT',
+            '',
           ]);
+
+          sheet.appendRow([
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            totalSessionCostAllRooms.toStringAsFixed(2),
+            totalOrdersCostAllRooms.toStringAsFixed(2),
+            grandTotalAllRooms.toStringAsFixed(2),
+            totalOrdersCount.toString(),
+            '',
+          ]);
+
+          // Add percentage breakdown
+          sheet.appendRow([]);
+          if (grandTotalAllRooms > 0) {
+            final sessionPercentage = (totalSessionCostAllRooms /
+                    grandTotalAllRooms *
+                    100)
+                .toStringAsFixed(1);
+            final ordersPercentage = (totalOrdersCostAllRooms /
+                    grandTotalAllRooms *
+                    100)
+                .toStringAsFixed(1);
+
+            sheet.appendRow([
+              '',
+              '',
+              '',
+              '',
+              '',
+              '',
+              'Percentage Breakdown',
+              '',
+              '',
+              '',
+              '',
+            ]);
+
+            sheet.appendRow([
+              '',
+              '',
+              '',
+              '',
+              '',
+              '',
+              'Session: ${sessionPercentage}%',
+              'Orders: ${ordersPercentage}%',
+              'Total: 100%',
+              '',
+              '',
+            ]);
+          }
 
           // Save file with safe filename
           final directory = await getApplicationDocumentsDirectory();
@@ -133,9 +259,9 @@ class ExportSessionsButton extends StatelessWidget {
             );
           }
         } catch (e) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Error exporting: $e")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error exporting: $e")),
+          );
         }
       },
     );

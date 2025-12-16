@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/vip_widget.dart';
@@ -33,6 +34,7 @@ class RoomCardWidget extends StatefulWidget {
 }
 
 class _RoomCardWidgetState extends State<RoomCardWidget> {
+  final isMobile = Platform.isIOS || Platform.isAndroid;
   Timer? _timer;
 
   @override
@@ -253,6 +255,8 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
+                  disabledBackgroundColor: Colors.transparent,
+                  disabledForegroundColor: Colors.transparent,
                   backgroundColor:
                       widget.room.isOccupied
                           ? Colors.red
@@ -265,13 +269,17 @@ class _RoomCardWidgetState extends State<RoomCardWidget> {
                   elevation: 0,
                   shadowColor: Colors.transparent,
                 ),
-                onPressed: () {
-                  if (widget.room.isOccupied) {
-                    widget.onEndSession();
-                  } else {
-                    _showSessionTypeDialog(context);
-                  }
-                },
+
+                onPressed:
+                    isMobile
+                        ? null
+                        : () {
+                          if (widget.room.isOccupied) {
+                            widget.onEndSession();
+                          } else {
+                            _showSessionTypeDialog(context);
+                          }
+                        },
                 child: Text(
                   widget.room.isOccupied ? "End Session" : "Start Session",
                   style: const TextStyle(

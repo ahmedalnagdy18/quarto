@@ -34,20 +34,20 @@ class DashboardRepositoryImp implements DashboardRepository {
       double totalIncome = 0;
 
       // تحقق من كل الجلسات في الداتابيز
-      final allSessions = await supabase
-          .from('session_history')
-          .select('id, total_cost, orders, start_time, room_id')
-          .not('end_time', 'is', null);
+      // final allSessions = await supabase
+      //     .from('session_history')
+      //     .select('id, total_cost, orders, start_time, room_id')
+      //     .not('end_time', 'is', null);
 
-      for (var session in allSessions) {
-        final cost = session['total_cost'] ?? 0;
-        final orders = session['orders'] ?? 0;
-        final sessionCost =
-            (cost as num).toDouble() - (orders as num).toDouble();
-        print(
-          "  - Session ${session['id']}: Total=$cost, Orders=$orders, Session Cost=${sessionCost.toStringAsFixed(2)}",
-        );
-      }
+      // for (var session in allSessions) {
+      //   final cost = session['total_cost'] ?? 0;
+      //   final orders = session['orders'] ?? 0;
+      //   final sessionCost =
+      //       (cost as num).toDouble() - (orders as num).toDouble();
+      //   print(
+      //     "  - Session ${session['id']}: Total=$cost, Orders=$orders, Session Cost=${sessionCost.toStringAsFixed(2)}",
+      //   );
+      // }
 
       for (var room in rooms) {
         try {
