@@ -77,15 +77,12 @@ class RoomsCubit extends Cubit<RoomsState> {
     List<OrderItem> orders, {
     String? sessionId,
   }) async {
-    print("RoomsCubit.addOrders called with $orders, sessionId: $sessionId");
     emit(RoomsLoading());
     try {
       await addOrdersUsecase(roomId, orders, sessionId: sessionId);
       emit(RoomOrdersAdded());
-      print("Orders added successfully");
       await loadRoomsAndStats();
     } catch (e) {
-      print("Error in addOrders: $e");
       emit(RoomsError(e.toString()));
     }
   }

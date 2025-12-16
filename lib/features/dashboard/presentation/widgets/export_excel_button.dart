@@ -136,7 +136,6 @@ class ExportSessionsButton extends StatelessWidget {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Error exporting: $e")));
-          print(e);
         }
       },
     );

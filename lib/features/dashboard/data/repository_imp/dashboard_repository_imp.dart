@@ -33,15 +33,12 @@ class DashboardRepositoryImp implements DashboardRepository {
       // ================= احسب دخل كل الغرف =================
       double totalIncome = 0;
 
-      print("📊 Calculating income for all rooms:");
-
       // تحقق من كل الجلسات في الداتابيز
       final allSessions = await supabase
           .from('session_history')
           .select('id, total_cost, orders, start_time, room_id')
           .not('end_time', 'is', null);
 
-      print("\n🔍 ALL SESSIONS IN DATABASE:");
       for (var session in allSessions) {
         final cost = session['total_cost'] ?? 0;
         final orders = session['orders'] ?? 0;
@@ -69,15 +66,15 @@ class DashboardRepositoryImp implements DashboardRepository {
           }
 
           if (roomTotal > 0) {
-            print("  - ${room.name}: ${roomTotal.toStringAsFixed(0)} \$");
+            // print("  - ${room.name}: ${roomTotal.toStringAsFixed(0)} \$");
             totalIncome += roomTotal;
           }
         } catch (e) {
-          print("  - Error for ${room.name}: $e");
+          // print("  - Error for ${room.name}: $e");
         }
       }
 
-      print("💰 FINAL TOTAL: ${totalIncome.toStringAsFixed(0)} \$");
+      // print("💰 FINAL TOTAL: ${totalIncome.toStringAsFixed(0)} \$");
 
       return {
         'totalRooms': rooms.length,
@@ -87,7 +84,7 @@ class DashboardRepositoryImp implements DashboardRepository {
         'rooms': rooms,
       };
     } catch (e) {
-      print("❌ Error in getDashboardStats: $e");
+      // print("❌ Error in getDashboardStats: $e");
       rethrow;
     }
   }
@@ -234,17 +231,6 @@ class DashboardRepositoryImp implements DashboardRepository {
       // الإجمالي = تكلفة الجلسة + الأوردرات
       final totalCost = sessionCost + existingOrdersCost;
 
-      // ⭐ طباعة للتحقق
-      print("💵 End Session Calculation:");
-      print("- Room: ${room.name}");
-      print(
-        "- Session Duration: ${now.difference(sessionStartUtc).inMinutes} minutes",
-      );
-      print("- Hourly Rate: ${room.hourlyRate}");
-      print("- Session Cost: ${sessionCost.toStringAsFixed(2)}");
-      print("- Existing Orders Cost: ${existingOrdersCost.toStringAsFixed(2)}");
-      print("- TOTAL: ${totalCost.toStringAsFixed(2)}");
-
       // تحديث حالة الغرفة
       await supabase
           .from('rooms')
@@ -268,7 +254,7 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       print("✅ Session ended successfully");
     } catch (e) {
-      print("❌ Error ending session: $e");
+      // print("❌ Error ending session: $e");
       rethrow;
     }
   }
@@ -389,10 +375,7 @@ class DashboardRepositoryImp implements DashboardRepository {
     try {
       if (orders.isEmpty) return;
 
-      print("🔵 addOrders called for room: $roomId, session: $sessionId");
-      print("- New orders: ${orders.length} items");
       final newOrdersPrice = orders.fold(0.0, (sum, item) => sum + item.price);
-      print("- New orders price: $newOrdersPrice");
 
       // 1. تحديث الغرفة
       final room = await getRoom(roomId);
@@ -410,8 +393,6 @@ class DashboardRepositoryImp implements DashboardRepository {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', roomId);
-
-      print("✅ Updated rooms table");
 
       // 2. تحديث الجلسة في session_history
       if (sessionId != null && sessionId.isNotEmpty) {
@@ -443,11 +424,6 @@ class DashboardRepositoryImp implements DashboardRepository {
         final ordersToAdd = newOrdersPrice; // ⭐ بس الأوردرات الجديدة
         final updatedTotalCost = currentTotalCost + ordersToAdd;
 
-        print("💵 Cost Calculation:");
-        print("- Current Total Cost: $currentTotalCost");
-        print("- New Orders Price: $ordersToAdd");
-        print("- Updated Total Cost: $updatedTotalCost");
-
         // تحديث الجلسة
         await supabase
             .from('session_history')
@@ -459,7 +435,7 @@ class DashboardRepositoryImp implements DashboardRepository {
             })
             .eq('id', sessionId);
 
-        print("✅ Updated session_history table for session: $sessionId");
+        // print("✅ Updated session_history table for session: $sessionId");
       } else {
         // إذا sessionId مش موجود، نبحث عن الجلسة النشطة
         final activeSession = await _getActiveSession(roomId);
@@ -492,15 +468,15 @@ class DashboardRepositoryImp implements DashboardRepository {
               })
               .eq('id', activeSession['id']);
 
-          print("✅ Updated active session in session_history");
+          // print("✅ Updated active session in session_history");
         } else {
-          print("⚠️ No active session found for room: $roomId");
+          // print("⚠️ No active session found for room: $roomId");
         }
       }
 
-      print("🎉 Orders added successfully to both tables!");
+      // print("🎉 Orders added successfully to both tables!");
     } catch (e) {
-      print("❌ Error in addOrders: $e");
+      // print("❌ Error in addOrders: $e");
       rethrow;
     }
   }
