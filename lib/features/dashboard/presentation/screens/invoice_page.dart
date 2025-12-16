@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
@@ -25,13 +28,14 @@ class InvoicePage extends StatefulWidget {
 }
 
 class _HistoryDetailsPageState extends State<InvoicePage> {
-  Future<void> _printInvoice() async {
+  Future<pw.Document> _buildPdf() async {
     final pdf = pw.Document();
 
     final double ordersTotal = widget.orderItem.fold(
       0,
       (sum, item) => sum + item.price,
     );
+
     final double grandTotal = widget.sessionHistory.totalCost + ordersTotal;
 
     pdf.addPage(
@@ -50,7 +54,6 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                   ),
                 ),
               ),
-
               pw.SizedBox(height: 6),
               pw.Center(child: pw.Text(widget.room.name)),
               pw.SizedBox(height: 20),
@@ -62,7 +65,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
               if (widget.sessionHistory.sessionTypeInfo.isNotEmpty)
                 _pdfRow('Type', widget.sessionHistory.sessionTypeInfo),
 
-              pw.Divider(),
+              pdfDashedDivider(),
 
               if (widget.orderItem.isNotEmpty) ...[
                 pw.Text(
@@ -76,7 +79,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                     '${order.price.toStringAsFixed(0)} \$',
                   ),
                 ),
-                pw.Divider(),
+                pdfDashedDivider(),
               ],
 
               _pdfRow(
@@ -88,7 +91,7 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
                 '${ordersTotal.toStringAsFixed(0)} \$',
               ),
 
-              pw.Divider(),
+              pdfDashedDivider(),
 
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -123,13 +126,61 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
       ),
     );
 
+    return pdf;
+  }
+
+  Future<void> _savePdf() async {
+    final pdf = await _buildPdf();
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(
+      '${dir.path}/invoice_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
+
+    await file.writeAsBytes(await pdf.save());
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invoice saved successfully')),
+      );
+    }
+  }
+
+  Future<void> _saveAndPrintPdf() async {
+    final pdf = await _buildPdf();
+    final bytes = await pdf.save();
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(
+      '${dir.path}/invoice_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
+
+    await file.writeAsBytes(bytes);
+
     await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
+      onLayout: (_) async => bytes,
     );
   }
 
   double get _ordersTotal {
     return widget.orderItem.fold(0, (sum, item) => sum + item.price);
+  }
+
+  pw.Widget pdfDashedDivider() {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 12),
+      child: pw.Row(
+        children: List.generate(
+          40,
+          (index) => pw.Expanded(
+            child: pw.Container(
+              height: 1,
+              color: index.isEven ? PdfColors.grey : PdfColors.white,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -145,7 +196,11 @@ class _HistoryDetailsPageState extends State<InvoicePage> {
         centerTitle: true,
         actions: [
           IconButton(
-            onPressed: _printInvoice,
+            onPressed: _savePdf,
+            icon: const Icon(Icons.save),
+          ),
+          IconButton(
+            onPressed: _saveAndPrintPdf,
             icon: const Icon(Icons.print),
           ),
           const SizedBox(width: 20),

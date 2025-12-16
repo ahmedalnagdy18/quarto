@@ -7,6 +7,6 @@ class GetRoomHistoryUsecase {
   GetRoomHistoryUsecase({required this.repository});
 
   Future<List<SessionHistory>> call({required String roomId}) async {
-    return repository.getRoomHistoryToday(roomId);
+    return repository.getRoomHistory(roomId);
   }
 }

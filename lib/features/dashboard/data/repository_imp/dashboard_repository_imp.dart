@@ -26,24 +26,40 @@ class DashboardRepositoryImp implements DashboardRepository {
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
       final rooms = await getAllRooms();
+
       final occupiedRooms = rooms.where((r) => r.isOccupied).length;
       final freeRooms = rooms.length - occupiedRooms;
 
-      // دخل اليوم من session_history
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
+      // ----------- TIME SETUP -----------
+      //   final now = DateTime.now();
+      //  final startOfDay = DateTime(now.year, now.month, now.day);
 
-      final incomeResponse = await supabase
+      // // ================= TODAY INCOME =================
+      // final todayIncomeResponse = await supabase
+      //     .from('session_history')
+      //     .select('total_cost')
+      //     .gte('end_time', startOfDay.toIso8601String())
+      //     .not('end_time', 'is', null);
+
+      // double todayIncome = 0;
+      // for (var session in todayIncomeResponse) {
+      //   final cost = session['total_cost'];
+      //   if (cost != null) {
+      //     todayIncome += (cost as num).toDouble();
+      //   }
+      // }
+
+      // ================= ALL TIME INCOME =================
+      final allTimeIncomeResponse = await supabase
           .from('session_history')
           .select('total_cost')
-          .gte('end_time', startOfDay.toIso8601String())
-          .not('end_time', 'is', null); // فقط الجلسات المنتهية
+          .not('end_time', 'is', null);
 
-      double todayIncome = 0;
-      for (var session in incomeResponse) {
+      double allTimeIncome = 0;
+      for (var session in allTimeIncomeResponse) {
         final cost = session['total_cost'];
         if (cost != null) {
-          todayIncome += (cost as num).toDouble();
+          allTimeIncome += (cost as num).toDouble();
         }
       }
 
@@ -51,11 +67,10 @@ class DashboardRepositoryImp implements DashboardRepository {
         'totalRooms': rooms.length,
         'occupiedRooms': occupiedRooms,
         'freeRooms': freeRooms,
-        'todayIncome': todayIncome,
+        'todayIncome': allTimeIncome,
         'rooms': rooms,
       };
     } catch (e) {
-      // print('Error getting dashboard stats: $e');
       rethrow;
     }
   }
@@ -73,23 +88,18 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<List<SessionHistory>> getRoomHistoryToday(String roomId) async {
+  Future<List<SessionHistory>> getRoomHistory(String roomId) async {
     try {
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-
       final response = await supabase
           .from('session_history')
           .select()
           .eq('room_id', roomId)
-          .gte('start_time', startOfDay.toIso8601String())
           .order('start_time', ascending: true);
 
       return (response as List)
           .map((json) => SessionHistory.fromJson(json))
           .toList();
     } catch (e) {
-      // print('Error getting room history: $e');
       rethrow;
     }
   }
@@ -229,26 +239,15 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<void> clearTodayHistory() async {
+  Future<void> clearAllHistory() async {
     try {
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
-      // print('Clearing today\'s history from $startOfDay to $endOfDay');
-
-      // Delete all session history from today
-      final response = await supabase
+      await supabase
           .from('session_history')
           .delete()
-          .gte('start_time', startOfDay.toIso8601String())
-          .lt('start_time', endOfDay.toIso8601String());
+          .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
 
-      // Handle null response (no rows deleted)
-      final deletedCount = response?.length ?? 0;
-      print('Deleted $deletedCount sessions from today');
+      // print('All session history cleared');
     } catch (e) {
-      // print('Error clearing today history: $e');
       rethrow;
     }
   }
@@ -313,7 +312,7 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       // 2. Clear today's history (wrap in try-catch to continue even if it fails)
       try {
-        await clearTodayHistory();
+        await clearAllHistory();
       } catch (e) {
         // print('Warning: Could not clear history: $e');
         // Continue anyway - rooms are already reset

@@ -6,6 +6,6 @@ class ClearTodayHistoryUsecase {
   ClearTodayHistoryUsecase({required this.repository});
 
   Future<void> call() async {
-    return await repository.clearTodayHistory();
+    return await repository.clearAllHistory();
   }
 }

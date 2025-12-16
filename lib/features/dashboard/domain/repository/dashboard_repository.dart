@@ -12,9 +12,9 @@ abstract class DashboardRepository {
   });
 
   Future<void> endSession(String roomId);
-  Future<List<SessionHistory>> getRoomHistoryToday(String roomId);
+  Future<List<SessionHistory>> getRoomHistory(String roomId);
   Future<Map<String, dynamic>> getDashboardStats();
   Future<void> resetAllSessions();
-  Future<void> clearTodayHistory();
+  Future<void> clearAllHistory();
   Future<void> startNewDay();
 }
