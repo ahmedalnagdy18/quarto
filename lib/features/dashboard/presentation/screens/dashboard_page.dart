@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_loading_widget.dart';
+import 'package:quarto/core/common/no_internet_widget.dart';
 import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/core/utils/internet_connection_mixin.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
@@ -159,7 +161,8 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage>
+    with InternetConnectionMixin {
   Room? _selectedRoom;
 
   @override
@@ -193,57 +196,64 @@ class _DashboardPageState extends State<DashboardPage> {
         ? const MobileDashboardPage()
         : Scaffold(
           backgroundColor: AppColors.bgCard,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              // 🔹 Read from context BEFORE any await
-              final dashboardCubit = context.read<DashboardCubit>();
-              final roomsCubit = context.read<RoomsCubit>();
-              final sessionHistoryCubit = context.read<SessionHistoryCubit>();
+          body:
+              !hasInternet
+                  ? NoInternetWidget()
+                  : RefreshIndicator(
+                    onRefresh: () async {
+                      // 🔹 Read from context BEFORE any await
+                      final dashboardCubit = context.read<DashboardCubit>();
+                      final roomsCubit = context.read<RoomsCubit>();
+                      final sessionHistoryCubit =
+                          context.read<SessionHistoryCubit>();
 
-              await dashboardCubit.loadDashboardStats();
-              await roomsCubit.refresh();
+                      await dashboardCubit.loadDashboardStats();
+                      await roomsCubit.refresh();
 
-              if (_selectedRoom != null) {
-                await sessionHistoryCubit.loadRoomHistory(
-                  _selectedRoom!.id,
-                );
-              }
-            },
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 50,
-                  vertical: 30,
-                ),
-                child: BlocListener<RoomsCubit, RoomsState>(
-                  listener: (context, state) {
-                    if (state is RoomsLoaded) {
-                      context.read<DashboardCubit>().loadDashboardStats();
-                      //todo: add ==============
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      _buildExportButtons(
-                        onPressed: () => _showStartNewDayDialog(context),
+                      if (_selectedRoom != null) {
+                        await sessionHistoryCubit.loadRoomHistory(
+                          _selectedRoom!.id,
+                        );
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 30,
+                        ),
+                        child: BlocListener<RoomsCubit, RoomsState>(
+                          listener: (context, state) {
+                            if (state is RoomsLoaded) {
+                              context
+                                  .read<DashboardCubit>()
+                                  .loadDashboardStats();
+                              //todo: add ==============
+                            }
+                          },
+                          child: Column(
+                            children: [
+                              _buildExportButtons(
+                                onPressed:
+                                    () => _showStartNewDayDialog(context),
+                              ),
+                              SizedBox(height: 14),
+                              _buildStatisticsContainer(),
+                              const SizedBox(height: 20),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: _buildRoomsContainer()),
+                                  const SizedBox(width: 20),
+                                  Expanded(child: _buildRoomDetailsContainer()),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      SizedBox(height: 14),
-                      _buildStatisticsContainer(),
-                      const SizedBox(height: 20),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildRoomsContainer()),
-                          const SizedBox(width: 20),
-                          Expanded(child: _buildRoomDetailsContainer()),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ),
         );
   }
 
