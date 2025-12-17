@@ -196,6 +196,21 @@ class _DashboardPageState extends State<DashboardPage>
         ? const MobileDashboardPage()
         : Scaffold(
           backgroundColor: AppColors.bgCard,
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Developed by Eng. Ahmed Alnagdy',
+                textAlign: TextAlign.center,
+                style: AppTexts.smallBody.copyWith(
+                  color: Colors.grey.shade500,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+
           body:
               !hasInternet
                   ? NoInternetWidget()
