@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,7 +34,10 @@ class HistoryDetailsPage extends StatefulWidget {
 }
 
 class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
-  final isMobile = Platform.isIOS || Platform.isAndroid;
+  final isMobile =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
   final List<OrderItemData> _orders = [];
   List<OrderItemData> _existingOrders = [];
   void _addOrderDialog() {

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/vip_widget.dart';
@@ -34,7 +34,10 @@ class RoomCardWidget extends StatefulWidget {
 }
 
 class _RoomCardWidgetState extends State<RoomCardWidget> {
-  final isMobile = Platform.isIOS || Platform.isAndroid;
+  final isMobile =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
   Timer? _timer;
 
   @override
