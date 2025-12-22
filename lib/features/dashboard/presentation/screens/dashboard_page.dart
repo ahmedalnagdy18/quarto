@@ -19,7 +19,7 @@ import 'package:quarto/features/dashboard/presentation/widgets/export_excel_butt
 import 'package:quarto/features/dashboard/presentation/widgets/room_card_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/start_new_day_widget.dart';
 
-// Add this helper class
+// helper class
 class StartNewDayDialog extends StatefulWidget {
   final BuildContext parentContext;
 
@@ -40,7 +40,7 @@ class _StartNewDayDialogState extends State<StartNewDayDialog> {
   }
 
   Future<void> _startNewDay() async {
-    // 🔹 Extract everything from context BEFORE await
+    // Extract everything from context BEFORE await
     final dashboardCubit = widget.parentContext.read<DashboardCubit>();
     final roomsCubit = widget.parentContext.read<RoomsCubit>();
     final sessionHistoryCubit =
@@ -219,7 +219,6 @@ class _DashboardPageState extends State<DashboardPage>
                   ? NoInternetWidget()
                   : RefreshIndicator(
                     onRefresh: () async {
-                      // 🔹 Read from context BEFORE any await
                       final dashboardCubit = context.read<DashboardCubit>();
                       final roomsCubit = context.read<RoomsCubit>();
                       final sessionHistoryCubit =
@@ -290,7 +289,7 @@ class _DashboardPageState extends State<DashboardPage>
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          height: 160, // زد الارتفاع قليلاً
+          height: 160,
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -514,7 +513,7 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   Widget _buildLiveSessionInfo(Room room) {
-    // Remove StreamBuilder, just show static info
+    // static info
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
