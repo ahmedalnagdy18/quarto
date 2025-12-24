@@ -73,6 +73,18 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                     value: 'Tea',
                     child: Text('Tea'),
                   ),
+                  DropdownMenuItem(
+                    value: 'Cola',
+                    child: Text('Cola'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'RedPull',
+                    child: Text('RedPull'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Others',
+                    child: Text('Others'),
+                  ),
                 ],
                 onChanged: (value) {
                   selectedDrink = value!;
