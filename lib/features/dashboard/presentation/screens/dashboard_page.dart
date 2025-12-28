@@ -194,7 +194,8 @@ class _DashboardPageState extends State<DashboardPage>
     final isMobile =
         !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.android);
+            defaultTargetPlatform == TargetPlatform.android) &&
+        MediaQuery.of(context).size.shortestSide < 600;
     return isMobile
         ? const MobileDashboardPage()
         : Scaffold(
@@ -578,85 +579,90 @@ class _DashboardPageState extends State<DashboardPage>
       return hours * session.hourlyRate;
     }
 
-    return DataTable(
-      dataTextStyle: const TextStyle(color: Colors.white),
-      headingTextStyle: const TextStyle(color: Colors.white),
-      border: TableBorder.all(color: AppColors.borderLight),
-      headingRowColor: MaterialStateProperty.all(AppColors.borderColor),
-      columnSpacing: 20,
-      horizontalMargin: 12,
-      columns: const [
-        DataColumn(label: Text("#")),
-        DataColumn(label: Text("Start")),
-        DataColumn(label: Text("End")),
-        DataColumn(label: Text("Duration")),
-        DataColumn(label: Text("Session")), // تكلفة الجلسة فقط
-        DataColumn(label: Text("Orders")), // تكلفة الأوردرات فقط
-        DataColumn(label: Text("Total")), // الإجمالي (الجلسة + الأوردرات)
-        DataColumn(label: Text("Details")),
-      ],
-      rows:
-          history.asMap().entries.map((entry) {
-            final index = entry.key;
-            final session = entry.value;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        dataTextStyle: const TextStyle(color: Colors.white),
+        headingTextStyle: const TextStyle(color: Colors.white),
+        border: TableBorder.all(color: AppColors.borderLight),
+        headingRowColor: MaterialStateProperty.all(AppColors.borderColor),
+        columnSpacing: 20,
+        horizontalMargin: 12,
+        columns: const [
+          DataColumn(label: Text("#")),
+          DataColumn(label: Text("Start")),
+          DataColumn(label: Text("End")),
+          DataColumn(label: Text("Duration")),
+          DataColumn(label: Text("Session")), // تكلفة الجلسة فقط
+          DataColumn(label: Text("Orders")), // تكلفة الأوردرات فقط
+          DataColumn(label: Text("Total")), // الإجمالي (الجلسة + الأوردرات)
+          DataColumn(label: Text("Details")),
+        ],
+        rows:
+            history.asMap().entries.map((entry) {
+              final index = entry.key;
+              final session = entry.value;
 
-            final sessionCost = calculateSessionCost(session);
-            final ordersCost = session.ordersTotal;
-            final totalCost = sessionCost + ordersCost;
+              final sessionCost = calculateSessionCost(session);
+              final ordersCost = session.ordersTotal;
+              final totalCost = sessionCost + ordersCost;
 
-            return DataRow(
-              cells: [
-                DataCell(Text("${index + 1}")),
-                DataCell(Text(session.startTimeShort)),
-                DataCell(
-                  Text(
-                    session.endTime != null ? session.endTimeShort : "Running",
-                  ),
-                ),
-                DataCell(Text(session.formattedDuration)),
-                DataCell(Text("${sessionCost.toStringAsFixed(0)} \$")),
-                DataCell(
-                  Text(
-                    "${ordersCost.toStringAsFixed(0)} \$",
-                    style: TextStyle(
-                      color: ordersCost > 0 ? Colors.green : Colors.grey,
+              return DataRow(
+                cells: [
+                  DataCell(Text("${index + 1}")),
+                  DataCell(Text(session.startTimeShort)),
+                  DataCell(
+                    Text(
+                      session.endTime != null
+                          ? session.endTimeShort
+                          : "Running",
                     ),
                   ),
-                ),
-                DataCell(
-                  Text(
-                    "${totalCost.toStringAsFixed(0)} \$",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBlue,
+                  DataCell(Text(session.formattedDuration)),
+                  DataCell(Text("${sessionCost.toStringAsFixed(0)} \$")),
+                  DataCell(
+                    Text(
+                      "${ordersCost.toStringAsFixed(0)} \$",
+                      style: TextStyle(
+                        color: ordersCost > 0 ? Colors.green : Colors.grey,
+                      ),
                     ),
                   ),
-                ),
-                DataCell(
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => HistoryDetailsPage(
-                                sessionHistory: session,
-                                room: room,
-                                sessionId: session.id,
-                              ),
-                        ),
-                      );
-                    },
-                    child: Icon(
-                      Icons.remove_red_eye,
-                      color: Colors.white,
-                      size: 18,
+                  DataCell(
+                    Text(
+                      "${totalCost.toStringAsFixed(0)} \$",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryBlue,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          }).toList(),
+                  DataCell(
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => HistoryDetailsPage(
+                                  sessionHistory: session,
+                                  room: room,
+                                  sessionId: session.id,
+                                ),
+                          ),
+                        );
+                      },
+                      child: Icon(
+                        Icons.remove_red_eye,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+      ),
     );
   }
 

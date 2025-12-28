@@ -51,6 +51,10 @@ class _InvoicePageState extends State<InvoicePage> {
   Future<pw.Document> _buildPdf() async {
     final pdf = pw.Document();
 
+    final today = DateTime.now();
+    final todayStr =
+        '${today.day.toString().padLeft(2, '0')}- ${today.month.toString().padLeft(2, '0')}- ${today.year}';
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -69,6 +73,21 @@ class _InvoicePageState extends State<InvoicePage> {
               ),
               pw.SizedBox(height: 6),
               pw.Center(child: pw.Text(widget.room.name)),
+              pw.SizedBox(height: 12),
+              // -------- تاريخ اليوم --------
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'Date: $todayStr',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                ],
+              ),
+
               pw.SizedBox(height: 20),
 
               _pdfRow('Start Time', widget.sessionHistory.startTimeShort),
@@ -95,12 +114,10 @@ class _InvoicePageState extends State<InvoicePage> {
                 pdfDashedDivider(),
               ],
 
-              // ⭐⭐ هنا التصحيح: Session Cost بس بدون أوردرات ⭐⭐
               _pdfRow(
                 'Session Cost',
                 '${_sessionCost.toStringAsFixed(0)} \$',
               ),
-
               _pdfRow(
                 'Drinks Total',
                 '${_ordersTotal.toStringAsFixed(0)} \$',
@@ -238,10 +255,18 @@ class _InvoicePageState extends State<InvoicePage> {
                 const SizedBox(height: 6),
                 Text(
                   widget.room.name,
-                  style: AppTexts.smallBody.copyWith(color: Colors.grey),
+                  style: AppTexts.smallBody.copyWith(color: Colors.black),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                Text(
+                  'Date: ${DateTime.now().day.toString().padLeft(2, '0')}- ${DateTime.now().month.toString().padLeft(2, '0')}- ${DateTime.now().year}',
+                  style: AppTexts.smallBody.copyWith(
+                    color: Colors.black,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
                 _divider(),
 
                 // -------- SESSION DETAILS --------

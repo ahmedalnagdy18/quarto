@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:excel/excel.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
@@ -8,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ExportSessionsButton extends StatelessWidget {
   const ExportSessionsButton({super.key});
@@ -16,6 +18,8 @@ class ExportSessionsButton extends StatelessWidget {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}';
   }
+
+  bool get isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   @override
   Widget build(BuildContext context) {
@@ -244,18 +248,37 @@ class ExportSessionsButton extends StatelessWidget {
           }
 
           // Save file with safe filename
-          final directory = await getApplicationDocumentsDirectory();
-          final filePath = p.join(
-            directory.path,
-            'rooms_history_${getSafeTimestamp()}.xlsx',
-          );
-
           final fileBytes = excel.encode();
-          if (fileBytes != null) {
+          if (fileBytes == null) return;
+
+          if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+            // 🖥 Desktop → Save directly
+            final directory = await getApplicationDocumentsDirectory();
+            final filePath = p.join(
+              directory.path,
+              'rooms_history_${getSafeTimestamp()}.xlsx',
+            );
+
             final file = File(filePath);
             await file.writeAsBytes(fileBytes);
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Backup saved at $filePath")),
+            );
+          } else {
+            // 📱 Mobile → Share Excel file
+            final tempDir = await getTemporaryDirectory();
+            final filePath = p.join(
+              tempDir.path,
+              'rooms_history_${getSafeTimestamp()}.xlsx',
+            );
+
+            final file = File(filePath);
+            await file.writeAsBytes(fileBytes);
+
+            await Share.shareXFiles(
+              [XFile(filePath)],
+              text: 'Rooms & Sessions Export',
             );
           }
         } catch (e) {

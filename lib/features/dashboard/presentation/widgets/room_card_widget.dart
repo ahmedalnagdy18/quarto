@@ -34,10 +34,12 @@ class RoomCardWidget extends StatefulWidget {
 }
 
 class _RoomCardWidgetState extends State<RoomCardWidget> {
-  final isMobile =
+  bool get isMobile =>
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+          defaultTargetPlatform == TargetPlatform.android) &&
+      MediaQuery.of(context).size.shortestSide < 600;
+
   Timer? _timer;
 
   @override

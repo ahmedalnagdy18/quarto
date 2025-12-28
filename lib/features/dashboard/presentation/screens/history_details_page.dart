@@ -34,10 +34,12 @@ class HistoryDetailsPage extends StatefulWidget {
 }
 
 class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
-  final isMobile =
+  bool get isMobile =>
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android);
+          defaultTargetPlatform == TargetPlatform.android) &&
+      MediaQuery.of(context).size.shortestSide < 600;
+
   final List<OrderItemData> _orders = [];
   List<OrderItemData> _existingOrders = [];
   void _addOrderDialog() {
