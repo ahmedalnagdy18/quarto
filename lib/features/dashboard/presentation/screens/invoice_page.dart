@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:quarto/core/colors/app_colors.dart';
@@ -211,6 +212,9 @@ class _InvoicePageState extends State<InvoicePage> {
     );
   }
 
+  bool get isMobile =>
+      !kIsWeb && (defaultTargetPlatform == TargetPlatform.android);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,10 +225,12 @@ class _InvoicePageState extends State<InvoicePage> {
         title: Text(widget.room.name, style: AppTexts.smallHeading),
         centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: _savePdf,
-            icon: const Icon(Icons.save),
-          ),
+          isMobile
+              ? SizedBox()
+              : IconButton(
+                onPressed: _savePdf,
+                icon: const Icon(Icons.save),
+              ),
           IconButton(
             onPressed: _saveAndPrintPdf,
             icon: const Icon(Icons.print),
