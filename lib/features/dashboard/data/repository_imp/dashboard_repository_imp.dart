@@ -1,3 +1,4 @@
+import 'package:quarto/features/dashboard/data/model/outcomes_model.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
@@ -92,8 +93,11 @@ class DashboardRepositoryImp implements DashboardRepository {
   @override
   Future<Room> getRoom(String roomId) async {
     try {
-      final response =
-          await supabase.from('rooms').select().eq('id', roomId).single();
+      final response = await supabase
+          .from('rooms')
+          .select()
+          .eq('id', roomId)
+          .single();
       return Room.fromJson(response);
     } catch (e) {
       // print('Error getting room: $e');
@@ -215,10 +219,9 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       // خد الأوردرات من الجلسة النشطة
       if (activeSession['orders_items'] != null) {
-        final currentOrdersList =
-            (activeSession['orders_items'] as List)
-                .map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
-                .toList();
+        final currentOrdersList = (activeSession['orders_items'] as List)
+            .map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
 
         if (currentOrdersList.isNotEmpty) {
           existingOrdersCost = currentOrdersList.fold(
@@ -262,15 +265,14 @@ class DashboardRepositoryImp implements DashboardRepository {
   // دالة مساعدة للحصول على الجلسة النشطة
   Future<Map<String, dynamic>?> _getActiveSession(String roomId) async {
     try {
-      final response =
-          await supabase
-              .from('session_history')
-              .select()
-              .eq('room_id', roomId)
-              .filter('end_time', 'is', null) // البحث عن الجلسات النشطة
-              .order('start_time', ascending: false)
-              .limit(1)
-              .maybeSingle();
+      final response = await supabase
+          .from('session_history')
+          .select()
+          .eq('room_id', roomId)
+          .filter('end_time', 'is', null) // البحث عن الجلسات النشطة
+          .order('start_time', ascending: false)
+          .limit(1)
+          .maybeSingle();
 
       return response;
     } catch (e) {
@@ -397,12 +399,11 @@ class DashboardRepositoryImp implements DashboardRepository {
       // 2. تحديث الجلسة في session_history
       if (sessionId != null && sessionId.isNotEmpty) {
         // جلب بيانات الجلسة الحالية
-        final sessionResponse =
-            await supabase
-                .from('session_history')
-                .select()
-                .eq('id', sessionId)
-                .single();
+        final sessionResponse = await supabase
+            .from('session_history')
+            .select()
+            .eq('id', sessionId)
+            .single();
 
         // Parse existing orders
         final currentOrdersList =
@@ -419,8 +420,8 @@ class DashboardRepositoryImp implements DashboardRepository {
         );
 
         // ⭐⭐ الحساب الصحيح: نضيف سعر الأوردرات الجديدة فقط
-        final currentTotalCost =
-            (sessionResponse['total_cost'] as num).toDouble();
+        final currentTotalCost = (sessionResponse['total_cost'] as num)
+            .toDouble();
         final ordersToAdd = newOrdersPrice; // ⭐ بس الأوردرات الجديدة
         final updatedTotalCost = currentTotalCost + ordersToAdd;
 
@@ -453,8 +454,8 @@ class DashboardRepositoryImp implements DashboardRepository {
           );
 
           // نفس المنطق: نضيف الجديدة فقط
-          final currentTotalCost =
-              (activeSession['total_cost'] as num).toDouble();
+          final currentTotalCost = (activeSession['total_cost'] as num)
+              .toDouble();
           final ordersToAdd = newOrdersPrice;
           final updatedTotalCost = currentTotalCost + ordersToAdd;
 
@@ -479,5 +480,41 @@ class DashboardRepositoryImp implements DashboardRepository {
       // print("❌ Error in addOrders: $e");
       rethrow;
     }
+  }
+
+  @override
+  Future<void> addOutComes({required int price, required String note}) async {
+    try {
+      await supabase.from('outcomes').insert({
+        "price": price,
+        "note": note,
+      });
+    } catch (e) {
+      // Handle error appropriately
+      throw Exception('Failed to add outcome: $e');
+    }
+  }
+
+  @override
+  Future<List<OutcomesModel>> outComesData() async {
+    final response = await supabase
+        .from('outcomes')
+        .select() // This selects ALL columns
+        .order(
+          'id',
+          ascending: false,
+        ); // Or don't order if you don't have created_at
+
+    return (response as List)
+        .map((json) => OutcomesModel.fromJson(json))
+        .toList();
+  }
+
+  @override
+  Future<void> deleteOutComesData(String id) async {
+    await supabase
+        .from('outcomes')
+        .delete()
+        .eq('id', id); // This specifies which row to delete
   }
 }

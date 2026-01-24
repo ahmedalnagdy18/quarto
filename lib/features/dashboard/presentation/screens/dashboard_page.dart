@@ -15,6 +15,7 @@ import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
 import 'package:quarto/features/dashboard/presentation/screens/mobile_dashboard_page.dart';
+import 'package:quarto/features/dashboard/presentation/screens/out_comes_page.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/export_excel_button.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/room_card_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/start_new_day_widget.dart';
@@ -43,11 +44,11 @@ class _StartNewDayDialogState extends State<StartNewDayDialog> {
     // Extract everything from context BEFORE await
     final dashboardCubit = widget.parentContext.read<DashboardCubit>();
     final roomsCubit = widget.parentContext.read<RoomsCubit>();
-    final sessionHistoryCubit =
-        widget.parentContext.read<SessionHistoryCubit>();
+    final sessionHistoryCubit = widget.parentContext
+        .read<SessionHistoryCubit>();
 
-    final parentState =
-        widget.parentContext.findAncestorStateOfType<_DashboardPageState>();
+    final parentState = widget.parentContext
+        .findAncestorStateOfType<_DashboardPageState>();
 
     try {
       await dashboardCubit.startNewDay();
@@ -85,55 +86,53 @@ class _StartNewDayDialogState extends State<StartNewDayDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.bgDark,
-      content:
-          _isLoading
-              ? const Row(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 16),
-                  Text(
-                    'Starting new day...',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
-              )
-              : _error != null
-              ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error, color: Colors.red, size: 40),
-                  const SizedBox(height: 16),
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              )
-              : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 40),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'New day started successfully!',
-                    style: TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-      actions:
-          _error != null
-              ? [
-                TextButton(
-                  onPressed: () => Navigator.pop(widget.parentContext),
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(color: Colors.white),
-                  ),
+      content: _isLoading
+          ? const Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text(
+                  'Starting new day...',
+                  style: TextStyle(color: Colors.white),
                 ),
-              ]
-              : null,
+              ],
+            )
+          : _error != null
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error, color: Colors.red, size: 40),
+                const SizedBox(height: 16),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 40),
+                const SizedBox(height: 16),
+                const Text(
+                  'New day started successfully!',
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+      actions: _error != null
+          ? [
+              TextButton(
+                onPressed: () => Navigator.pop(widget.parentContext),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ]
+          : null,
     );
   }
 }
@@ -199,31 +198,30 @@ class _DashboardPageState extends State<DashboardPage>
     return isMobile
         ? const MobileDashboardPage()
         : Scaffold(
-          backgroundColor: AppColors.bgCard,
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Developed by Eng. Ahmed Alnagdy',
-                textAlign: TextAlign.center,
-                style: AppTexts.smallBody.copyWith(
-                  color: Colors.grey.shade500,
-                  fontSize: 12,
+            backgroundColor: AppColors.bgCard,
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Developed by Eng. Ahmed Alnagdy',
+                  textAlign: TextAlign.center,
+                  style: AppTexts.smallBody.copyWith(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          body:
-              !hasInternet
-                  ? NoInternetWidget()
-                  : RefreshIndicator(
+            body: !hasInternet
+                ? NoInternetWidget()
+                : RefreshIndicator(
                     onRefresh: () async {
                       final dashboardCubit = context.read<DashboardCubit>();
                       final roomsCubit = context.read<RoomsCubit>();
-                      final sessionHistoryCubit =
-                          context.read<SessionHistoryCubit>();
+                      final sessionHistoryCubit = context
+                          .read<SessionHistoryCubit>();
 
                       await dashboardCubit.loadDashboardStats();
                       await roomsCubit.refresh();
@@ -252,8 +250,9 @@ class _DashboardPageState extends State<DashboardPage>
                           child: Column(
                             children: [
                               _buildExportButtons(
-                                onPressed:
-                                    () => _showStartNewDayDialog(context),
+                                context: context,
+                                onPressed: () =>
+                                    _showStartNewDayDialog(context),
                               ),
                               SizedBox(height: 14),
                               _buildStatisticsContainer(),
@@ -272,7 +271,7 @@ class _DashboardPageState extends State<DashboardPage>
                       ),
                     ),
                   ),
-        );
+          );
   }
 
   Widget _buildStatisticsContainer() {
@@ -435,18 +434,19 @@ class _DashboardPageState extends State<DashboardPage>
       onEndSession: () {
         context.read<RoomsCubit>().endSession(room.id);
       },
-      onStartSession: ({
-        String? psType,
-        bool? isMulti,
-        double? hourlyRate,
-      }) async {
-        await context.read<RoomsCubit>().startSession(
-          room.id,
-          psType: psType,
-          isMulti: isMulti,
-          hourlyRate: hourlyRate,
-        );
-      },
+      onStartSession:
+          ({
+            String? psType,
+            bool? isMulti,
+            double? hourlyRate,
+          }) async {
+            await context.read<RoomsCubit>().startSession(
+              room.id,
+              psType: psType,
+              isMulti: isMulti,
+              hourlyRate: hourlyRate,
+            );
+          },
     );
   }
 
@@ -598,70 +598,66 @@ class _DashboardPageState extends State<DashboardPage>
           DataColumn(label: Text("Total")), // الإجمالي (الجلسة + الأوردرات)
           DataColumn(label: Text("Details")),
         ],
-        rows:
-            history.asMap().entries.map((entry) {
-              final index = entry.key;
-              final session = entry.value;
+        rows: history.asMap().entries.map((entry) {
+          final index = entry.key;
+          final session = entry.value;
 
-              final sessionCost = calculateSessionCost(session);
-              final ordersCost = session.ordersTotal;
-              final totalCost = sessionCost + ordersCost;
+          final sessionCost = calculateSessionCost(session);
+          final ordersCost = session.ordersTotal;
+          final totalCost = sessionCost + ordersCost;
 
-              return DataRow(
-                cells: [
-                  DataCell(Text("${index + 1}")),
-                  DataCell(Text(session.startTimeShort)),
-                  DataCell(
-                    Text(
-                      session.endTime != null
-                          ? session.endTimeShort
-                          : "Running",
-                    ),
+          return DataRow(
+            cells: [
+              DataCell(Text("${index + 1}")),
+              DataCell(Text(session.startTimeShort)),
+              DataCell(
+                Text(
+                  session.endTime != null ? session.endTimeShort : "Running",
+                ),
+              ),
+              DataCell(Text(session.formattedDuration)),
+              DataCell(Text("${sessionCost.toStringAsFixed(0)} \$")),
+              DataCell(
+                Text(
+                  "${ordersCost.toStringAsFixed(0)} \$",
+                  style: TextStyle(
+                    color: ordersCost > 0 ? Colors.green : Colors.grey,
                   ),
-                  DataCell(Text(session.formattedDuration)),
-                  DataCell(Text("${sessionCost.toStringAsFixed(0)} \$")),
-                  DataCell(
-                    Text(
-                      "${ordersCost.toStringAsFixed(0)} \$",
-                      style: TextStyle(
-                        color: ordersCost > 0 ? Colors.green : Colors.grey,
+                ),
+              ),
+              DataCell(
+                Text(
+                  "${totalCost.toStringAsFixed(0)} \$",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
+              ),
+              DataCell(
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HistoryDetailsPage(
+                          sessionHistory: session,
+                          room: room,
+                          sessionId: session.id,
+                        ),
                       ),
-                    ),
+                    );
+                  },
+                  child: Icon(
+                    Icons.remove_red_eye,
+                    color: Colors.white,
+                    size: 18,
                   ),
-                  DataCell(
-                    Text(
-                      "${totalCost.toStringAsFixed(0)} \$",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => HistoryDetailsPage(
-                                  sessionHistory: session,
-                                  room: room,
-                                  sessionId: session.id,
-                                ),
-                          ),
-                        );
-                      },
-                      child: Icon(
-                        Icons.remove_red_eye,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -755,11 +751,33 @@ class _DashboardPageState extends State<DashboardPage>
   }
 }
 
-Widget _buildExportButtons({required void Function()? onPressed}) {
+Widget _buildExportButtons({
+  required BuildContext context,
+  required void Function()? onPressed,
+}) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceAround,
     children: [
       ExportSessionsButton(),
+      ElevatedButton(
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(
+            AppColors.primaryBlue,
+          ),
+          foregroundColor: WidgetStatePropertyAll(
+            Colors.white,
+          ),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OutComesPage(),
+            ),
+          );
+        },
+        child: Text("Out Comes"),
+      ),
       ElevatedButton(
         style: ButtonStyle(
           backgroundColor: WidgetStatePropertyAll(

@@ -2,9 +2,12 @@ import 'package:get_it/get_it.dart';
 import 'package:quarto/features/dashboard/data/repository_imp/dashboard_repository_imp.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_orders_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/add_outcome_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/delete_outcome_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/end_session_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_all_rooms_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/get_outcomes_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_history_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/start_new_day_usecase.dart';
@@ -46,5 +49,15 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<AddOrdersUsecase>(
     () => AddOrdersUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<AddOutcomeUsecase>(
+    () => AddOutcomeUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<GetOutcomesUsecase>(
+    () => GetOutcomesUsecase(repository: sl()),
+  );
+
+  sl.registerLazySingleton<DeleteOutcomeUsecase>(
+    () => DeleteOutcomeUsecase(repository: sl()),
   );
 }
