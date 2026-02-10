@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_loading_widget.dart';
-import 'package:quarto/core/common/no_internet_widget.dart';
 import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/core/utils/internet_connection_mixin.dart';
@@ -13,9 +12,11 @@ import 'package:quarto/features/dashboard/data/model/session_history_model.dart'
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/screens/external_order_page.dart';
 import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
 import 'package:quarto/features/dashboard/presentation/screens/mobile_dashboard_page.dart';
 import 'package:quarto/features/dashboard/presentation/screens/out_comes_page.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/export_excel_button.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/room_card_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/start_new_day_widget.dart';
@@ -214,63 +215,62 @@ class _DashboardPageState extends State<DashboardPage>
               ),
             ),
 
-            body: !hasInternet
-                ? NoInternetWidget()
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      final dashboardCubit = context.read<DashboardCubit>();
-                      final roomsCubit = context.read<RoomsCubit>();
-                      final sessionHistoryCubit = context
-                          .read<SessionHistoryCubit>();
+            body:
+                // !hasInternet
+                //     ? NoInternetWidget()
+                //     :
+                RefreshIndicator(
+                  onRefresh: () async {
+                    final dashboardCubit = context.read<DashboardCubit>();
+                    final roomsCubit = context.read<RoomsCubit>();
+                    final sessionHistoryCubit = context
+                        .read<SessionHistoryCubit>();
 
-                      await dashboardCubit.loadDashboardStats();
-                      await roomsCubit.refresh();
+                    await dashboardCubit.loadDashboardStats();
+                    await roomsCubit.refresh();
 
-                      if (_selectedRoom != null) {
-                        await sessionHistoryCubit.loadRoomHistory(
-                          _selectedRoom!.id,
-                        );
-                      }
-                    },
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 50,
-                          vertical: 30,
-                        ),
-                        child: BlocListener<RoomsCubit, RoomsState>(
-                          listener: (context, state) {
-                            if (state is RoomsLoaded) {
-                              context
-                                  .read<DashboardCubit>()
-                                  .loadDashboardStats();
-                              //todo: add ==============
-                            }
-                          },
-                          child: Column(
-                            children: [
-                              _buildExportButtons(
-                                context: context,
-                                onPressed: () =>
-                                    _showStartNewDayDialog(context),
-                              ),
-                              SizedBox(height: 14),
-                              _buildStatisticsContainer(),
-                              const SizedBox(height: 20),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: _buildRoomsContainer()),
-                                  const SizedBox(width: 20),
-                                  Expanded(child: _buildRoomDetailsContainer()),
-                                ],
-                              ),
-                            ],
-                          ),
+                    if (_selectedRoom != null) {
+                      await sessionHistoryCubit.loadRoomHistory(
+                        _selectedRoom!.id,
+                      );
+                    }
+                  },
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 50,
+                        vertical: 30,
+                      ),
+                      child: BlocListener<RoomsCubit, RoomsState>(
+                        listener: (context, state) {
+                          if (state is RoomsLoaded) {
+                            context.read<DashboardCubit>().loadDashboardStats();
+                            //todo: add ==============
+                          }
+                        },
+                        child: Column(
+                          children: [
+                            _buildExportButtons(
+                              context: context,
+                              onPressed: () => _showStartNewDayDialog(context),
+                            ),
+                            SizedBox(height: 14),
+                            _buildStatisticsContainer(),
+                            const SizedBox(height: 20),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildRoomsContainer()),
+                                const SizedBox(width: 20),
+                                Expanded(child: _buildRoomDetailsContainer()),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
+                ),
           );
   }
 
@@ -753,21 +753,24 @@ class _DashboardPageState extends State<DashboardPage>
 
 Widget _buildExportButtons({
   required BuildContext context,
-  required void Function()? onPressed,
+  required void Function() onPressed,
 }) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceAround,
     children: [
       ExportSessionsButton(),
-      ElevatedButton(
-        style: ButtonStyle(
-          backgroundColor: WidgetStatePropertyAll(
-            AppColors.primaryBlue,
-          ),
-          foregroundColor: WidgetStatePropertyAll(
-            Colors.white,
-          ),
-        ),
+      ButtonWidget(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ExternalOrderPage(),
+            ),
+          );
+        },
+        title: "Orders",
+      ),
+      ButtonWidget(
         onPressed: () {
           Navigator.push(
             context,
@@ -776,17 +779,11 @@ Widget _buildExportButtons({
             ),
           );
         },
-        child: Text("Out Comes"),
+        title: "Out Comes",
       ),
-      ElevatedButton(
-        style: ButtonStyle(
-          backgroundColor: WidgetStatePropertyAll(
-            AppColors.primaryBlue,
-          ),
-          foregroundColor: WidgetStatePropertyAll(Colors.white),
-        ),
+      ButtonWidget(
         onPressed: onPressed,
-        child: Text("Start new day"),
+        title: "Start new day",
       ),
     ],
   );

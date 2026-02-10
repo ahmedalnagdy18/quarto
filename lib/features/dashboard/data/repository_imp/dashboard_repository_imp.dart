@@ -1,3 +1,4 @@
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/data/model/outcomes_model.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
@@ -516,5 +517,44 @@ class DashboardRepositoryImp implements DashboardRepository {
         .from('outcomes')
         .delete()
         .eq('id', id); // This specifies which row to delete
+  }
+
+  @override
+  Future<void> addExternalOrders({
+    required int price,
+    required String order,
+  }) async {
+    try {
+      await supabase.from('external_orders').insert({
+        "price": price,
+        "order": order,
+      });
+    } catch (e) {
+      // Handle error appropriately
+      throw Exception('Failed to add order: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteExternalOrder(String id) async {
+    await supabase
+        .from('external_orders')
+        .delete()
+        .eq('id', id); // This specifies which row to delete
+  }
+
+  @override
+  Future<List<ExternalOrdersModel>> getExternalOrders() async {
+    final response = await supabase
+        .from('external_orders')
+        .select() // This selects ALL columns
+        .order(
+          'id',
+          ascending: true,
+        ); // Or don't order if you don't have created_at
+
+    return (response as List)
+        .map((json) => ExternalOrdersModel.fromJson(json))
+        .toList();
   }
 }

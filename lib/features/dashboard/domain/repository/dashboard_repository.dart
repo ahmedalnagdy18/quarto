@@ -1,3 +1,4 @@
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/data/model/outcomes_model.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
@@ -27,4 +28,8 @@ abstract class DashboardRepository {
   Future<void> addOutComes({required int price, required String note});
   Future<List<OutcomesModel>> outComesData();
   Future<void> deleteOutComesData(String id);
+
+  Future<void> addExternalOrders({required int price, required String order});
+  Future<List<ExternalOrdersModel>> getExternalOrders();
+  Future<void> deleteExternalOrder(String id);
 }
