@@ -4,32 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
-import 'package:quarto/injection_container.dart';
 
-class OutComesPage extends StatelessWidget {
+class OutComesPage extends StatefulWidget {
   const OutComesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => OutcomesCubit(
-        addOutcomeUsecase: sl(),
-        getOutcomesUsecase: sl(),
-        deleteOutcomeUsecase: sl(),
-      ),
-      child: const _OutComesPage(),
-    );
-  }
+  State<OutComesPage> createState() => _OutComesPageState();
 }
 
-class _OutComesPage extends StatefulWidget {
-  const _OutComesPage();
-
-  @override
-  State<_OutComesPage> createState() => _OutComesPageState();
-}
-
-class _OutComesPageState extends State<_OutComesPage> {
+class _OutComesPageState extends State<OutComesPage> {
   // Declare TextEditingControllers
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();

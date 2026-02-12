@@ -6,6 +6,8 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/history_details_page.dart';
@@ -28,6 +30,8 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardCubit>().loadDashboardStats();
       context.read<RoomsCubit>().loadRoomsAndStats();
+      context.read<ExternalOrdersCubit>().getExternalOrders();
+      context.read<OutcomesCubit>().getOutcomes();
     });
   }
 
@@ -47,7 +51,8 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
           final dashboardCubit = context.read<DashboardCubit>();
           final roomsCubit = context.read<RoomsCubit>();
           final sessionHistoryCubit = context.read<SessionHistoryCubit>();
-
+          context.read<ExternalOrdersCubit>().getExternalOrders();
+          context.read<OutcomesCubit>().getOutcomes();
           await dashboardCubit.loadDashboardStats();
           await roomsCubit.refresh();
 
@@ -137,18 +142,19 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
               onEndSession: () {
                 context.read<RoomsCubit>().endSession(room.id);
               },
-              onStartSession: ({
-                String? psType,
-                bool? isMulti,
-                double? hourlyRate,
-              }) async {
-                await context.read<RoomsCubit>().startSession(
-                  room.id,
-                  psType: psType,
-                  isMulti: isMulti,
-                  hourlyRate: hourlyRate,
-                );
-              },
+              onStartSession:
+                  ({
+                    String? psType,
+                    bool? isMulti,
+                    double? hourlyRate,
+                  }) async {
+                    await context.read<RoomsCubit>().startSession(
+                      room.id,
+                      psType: psType,
+                      isMulti: isMulti,
+                      hourlyRate: hourlyRate,
+                    );
+                  },
             ),
           );
         },
@@ -184,17 +190,17 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                     children: [
                       _selectedRoom!.isOccupied
                           ? Text(
-                            'Occupied',
-                            style: AppTexts.smallBody.copyWith(
-                              color: Colors.red,
-                            ),
-                          )
+                              'Occupied',
+                              style: AppTexts.smallBody.copyWith(
+                                color: Colors.red,
+                              ),
+                            )
                           : Text(
-                            'Available',
-                            style: AppTexts.smallBody.copyWith(
-                              color: Colors.green,
+                              'Available',
+                              style: AppTexts.smallBody.copyWith(
+                                color: Colors.green,
+                              ),
                             ),
-                          ),
                     ],
                   ),
                 ),
@@ -265,12 +271,11 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (context) => HistoryDetailsPage(
-                              sessionHistory: session,
-                              room: _selectedRoom!,
-                              sessionId: session.id,
-                            ),
+                        builder: (context) => HistoryDetailsPage(
+                          sessionHistory: session,
+                          room: _selectedRoom!,
+                          sessionId: session.id,
+                        ),
                       ),
                     );
                   },
@@ -397,8 +402,9 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
             "${value.toStringAsFixed(0)} \$",
             style: AppTexts.smallBody.copyWith(
               color: isOrders && value > 0 ? Colors.green : Colors.white70,
-              fontWeight:
-                  isOrders && value > 0 ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isOrders && value > 0
+                  ? FontWeight.bold
+                  : FontWeight.normal,
             ),
           ),
         ],
@@ -457,7 +463,7 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                   child: Column(
                     children: [
                       Text(
-                        "Today's Income",
+                        "Rooms Income",
                         style: AppTexts.meduimHeading,
                       ),
                       const SizedBox(height: 12),
@@ -469,9 +475,9 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                         Column(
                           children: [
                             Text(
-                              "${todayIncome.toStringAsFixed(0)} \$",
+                              "\$${todayIncome.toStringAsFixed(0)}",
                               style: AppTexts.largeHeading.copyWith(
-                                color: AppColors.primaryBlue,
+                                color: Colors.green,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -538,6 +544,99 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                   ),
                 ],
               ),
+              SizedBox(height: 12),
+              // orders Stats
+              Row(
+                children: [
+                  Expanded(
+                    child: Card(
+                      color: AppColors.bgDark,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text(
+                              "Orders",
+                              style: AppTexts.smallHeading,
+                            ),
+                            const SizedBox(height: 8),
+                            BlocBuilder<
+                              ExternalOrdersCubit,
+                              ExternalOrdersState
+                            >(
+                              builder: (context, state) {
+                                int calculateTotal(List<int> prices) {
+                                  return prices.fold(
+                                    0,
+                                    (sum, price) => sum + price,
+                                  );
+                                }
+
+                                if (state is LoadingGetExternalOrders) {
+                                  return const AppLoadingWidget();
+                                }
+                                if (state is SuccessGetExternalOrders) {
+                                  return Text(
+                                    "\$${calculateTotal(state.data.map((e) => e.price).toList())}",
+                                    style: AppTexts.largeHeading.copyWith(
+                                      color: Colors.green,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  );
+                                }
+                                return SizedBox();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Card(
+                      color: AppColors.bgDark,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Text(
+                              "Outcomes",
+                              style: AppTexts.smallHeading,
+                            ),
+                            const SizedBox(height: 8),
+                            BlocBuilder<OutcomesCubit, OutcomesState>(
+                              builder: (context, state) {
+                                int calculateOutcomes(List<int> prices) {
+                                  return prices.fold(
+                                    0,
+                                    (sum, price) => sum + price,
+                                  );
+                                }
+
+                                if (state is LoadingGetOutcomes) {
+                                  return const AppLoadingWidget();
+                                }
+
+                                if (state is SuccessGetOutcomes) {
+                                  return Text(
+                                    "\$${calculateOutcomes(state.data.map((e) => e.price).toList())}",
+                                    style: AppTexts.largeHeading.copyWith(
+                                      color: Colors.red,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  );
+                                }
+                                return SizedBox();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 16),
 
@@ -566,9 +665,13 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                               ),
                               onPressed: () {
                                 context
+                                    .read<ExternalOrdersCubit>()
+                                    .getExternalOrders();
+                                context
                                     .read<DashboardCubit>()
                                     .loadDashboardStats();
                                 context.read<RoomsCubit>().refresh();
+                                context.read<OutcomesCubit>().getOutcomes();
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

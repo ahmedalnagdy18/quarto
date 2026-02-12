@@ -5,32 +5,15 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/orders_invoice_page.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/external_order_dailog_widget.dart';
-import 'package:quarto/injection_container.dart';
 
-class ExternalOrderPage extends StatelessWidget {
+class ExternalOrderPage extends StatefulWidget {
   const ExternalOrderPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ExternalOrdersCubit(
-        addExternalOrderUsecase: sl(),
-        getExternalOrdersUsecase: sl(),
-        deleteExternalOrder: sl(),
-      ),
-      child: const _ExternalOrderPage(),
-    );
-  }
+  State<ExternalOrderPage> createState() => _ExternalOrderPageState();
 }
 
-class _ExternalOrderPage extends StatefulWidget {
-  const _ExternalOrderPage();
-
-  @override
-  State<_ExternalOrderPage> createState() => _ExternalOrderPageState();
-}
-
-class _ExternalOrderPageState extends State<_ExternalOrderPage> {
+class _ExternalOrderPageState extends State<ExternalOrderPage> {
   // Helper method to calculate total
   int _calculateTotal(List<int> prices) {
     return prices.fold(0, (sum, price) => sum + price);
@@ -46,16 +29,6 @@ class _ExternalOrderPageState extends State<_ExternalOrderPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<ExternalOrdersCubit, ExternalOrdersState>(
       listener: (context, state) {
-        if (state is SuccessAddExternalOrders) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Successfully added outcome"),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.of(context).pop(); // Close the dialog
-          context.read<ExternalOrdersCubit>().getExternalOrders();
-        }
         if (state is ErrorGetExternalOrders) {
           print(state.message);
         }

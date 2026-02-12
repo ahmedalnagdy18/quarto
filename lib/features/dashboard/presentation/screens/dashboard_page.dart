@@ -10,6 +10,8 @@ import 'package:quarto/core/utils/internet_connection_mixin.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/external_order_page.dart';
@@ -171,6 +173,8 @@ class _DashboardPageState extends State<DashboardPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardCubit>().loadDashboardStats();
       context.read<RoomsCubit>().loadRoomsAndStats();
+      context.read<ExternalOrdersCubit>().getExternalOrders();
+      context.read<OutcomesCubit>().getOutcomes();
     });
   }
 
@@ -225,7 +229,10 @@ class _DashboardPageState extends State<DashboardPage>
                     final roomsCubit = context.read<RoomsCubit>();
                     final sessionHistoryCubit = context
                         .read<SessionHistoryCubit>();
-
+                    final externalOrders = context.read<ExternalOrdersCubit>();
+                    final outcomes = context.read<OutcomesCubit>();
+                    await externalOrders.getExternalOrders();
+                    await outcomes.getOutcomes();
                     await dashboardCubit.loadDashboardStats();
                     await roomsCubit.refresh();
 
@@ -309,7 +316,7 @@ class _DashboardPageState extends State<DashboardPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text("Today Income", style: AppTexts.smallHeading),
+                  Text("Rooms Income", style: AppTexts.smallHeading),
                   const SizedBox(height: 8),
                   if (state is DashboardLoading)
                     const AppLoadingWidget()
@@ -319,25 +326,86 @@ class _DashboardPageState extends State<DashboardPage>
                     Column(
                       children: [
                         Text(
-                          "${todayIncome.toStringAsFixed(0)} \$",
+                          "\$${todayIncome.toStringAsFixed(0)}",
                           style: AppTexts.largeHeading.copyWith(
-                            color: AppColors.primaryBlue,
+                            color: Colors.green,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "(Sessions + Orders)",
-                          style: AppTexts.smallBody.copyWith(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        // const SizedBox(height: 4),
+                        // Text(
+                        //   "(Sessions + Orders)",
+                        //   style: AppTexts.smallBody.copyWith(
+                        //     fontSize: 10,
+                        //     color: Colors.grey,
+                        //   ),
+                        // ),
                       ],
                     ),
                 ],
               ),
+              BlocBuilder<ExternalOrdersCubit, ExternalOrdersState>(
+                builder: (context, state) {
+                  int calculateTotal(List<int> prices) {
+                    return prices.fold(0, (sum, price) => sum + price);
+                  }
+
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text('Orders', style: AppTexts.smallHeading),
+                      const SizedBox(height: 12),
+                      if (state is LoadingGetExternalOrders)
+                        const AppLoadingWidget()
+                      else if (state is ErrorGetExternalOrders)
+                        Text("Error", style: AppTexts.largeHeading)
+                      else if (state is SuccessGetExternalOrders)
+                        Text(
+                          "\$${calculateTotal(state.data.map((e) => e.price).toList())}",
+                          style: AppTexts.largeHeading.copyWith(
+                            color: Colors.green,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              // add outcome box
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('Outcomes', style: AppTexts.smallHeading),
+                  const SizedBox(height: 12),
+                  BlocBuilder<OutcomesCubit, OutcomesState>(
+                    builder: (context, state) {
+                      int calculateOutcomes(List<int> prices) {
+                        return prices.fold(
+                          0,
+                          (sum, price) => sum + price,
+                        );
+                      }
+
+                      if (state is LoadingGetOutcomes) {
+                        return const AppLoadingWidget();
+                      }
+                      if (state is SuccessGetOutcomes) {
+                        return Text(
+                          "\$${calculateOutcomes(state.data.map((e) => e.price).toList())}",
+                          style: AppTexts.largeHeading.copyWith(
+                            color: Colors.red,
+                          ),
+                        );
+                      }
+                      return SizedBox();
+                    },
+                  ),
+                ],
+              ),
               IconButton(
                 onPressed: () {
+                  context.read<OutcomesCubit>().getOutcomes();
+                  context.read<ExternalOrdersCubit>().getExternalOrders();
                   context.read<DashboardCubit>().loadDashboardStats();
                   context.read<RoomsCubit>().refresh();
                   if (_selectedRoom != null) {

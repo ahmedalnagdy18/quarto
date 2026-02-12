@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/consts/app_const.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/dashboard_page.dart';
@@ -56,28 +58,38 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create:
-              (context) => DashboardCubit(
-                startNewDayUsecase: sl(),
-                getDashboardStatsUsecase: sl(),
-              ),
+          create: (context) => DashboardCubit(
+            startNewDayUsecase: sl(),
+            getDashboardStatsUsecase: sl(),
+          ),
         ),
         BlocProvider(
-          create:
-              (context) => SessionHistoryCubit(
-                getRoomHistoryUsecase: sl(),
-              ),
+          create: (context) => SessionHistoryCubit(
+            getRoomHistoryUsecase: sl(),
+          ),
         ),
-
         BlocProvider(
-          create:
-              (context) => RoomsCubit(
-                addOrdersUsecase: sl(),
-                getDashboardStatsUsecase: sl(),
-                getAllRoomsUsecase: sl(),
-                endSessionUsecase: sl(),
-                startSessionUsecase: sl(),
-              ),
+          create: (context) => ExternalOrdersCubit(
+            addExternalOrderUsecase: sl(),
+            getExternalOrdersUsecase: sl(),
+            deleteExternalOrder: sl(),
+          ),
+        ),
+        BlocProvider(
+          create: (context) => OutcomesCubit(
+            addOutcomeUsecase: sl(),
+            getOutcomesUsecase: sl(),
+            deleteOutcomeUsecase: sl(),
+          ),
+        ),
+        BlocProvider(
+          create: (context) => RoomsCubit(
+            addOrdersUsecase: sl(),
+            getDashboardStatsUsecase: sl(),
+            getAllRoomsUsecase: sl(),
+            endSessionUsecase: sl(),
+            startSessionUsecase: sl(),
+          ),
         ),
       ],
       child: MaterialApp(

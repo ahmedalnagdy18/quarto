@@ -5,7 +5,6 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/external_order_page.dart';
-import 'package:quarto/injection_container.dart';
 
 class OrderItem {
   final String name;
@@ -21,32 +20,15 @@ class OrderItem {
   double get totalPrice => price * quantity;
 }
 
-class ExternalOrderDialogWidget extends StatelessWidget {
+class ExternalOrderDialogWidget extends StatefulWidget {
   const ExternalOrderDialogWidget({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ExternalOrdersCubit(
-        addExternalOrderUsecase: sl(),
-        getExternalOrdersUsecase: sl(),
-        deleteExternalOrder: sl(),
-      ),
-      child: _ExternalOrderDialogWidget(),
-    );
-  }
-}
-
-class _ExternalOrderDialogWidget extends StatefulWidget {
-  const _ExternalOrderDialogWidget();
-
-  @override
-  State<_ExternalOrderDialogWidget> createState() =>
+  State<ExternalOrderDialogWidget> createState() =>
       _ExternalOrderDialogWidgetState();
 }
 
-class _ExternalOrderDialogWidgetState
-    extends State<_ExternalOrderDialogWidget> {
+class _ExternalOrderDialogWidgetState extends State<ExternalOrderDialogWidget> {
   final TextEditingController _priceController = TextEditingController();
   final List<OrderItem> _orders = [];
 
