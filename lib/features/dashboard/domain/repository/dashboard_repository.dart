@@ -32,4 +32,6 @@ abstract class DashboardRepository {
   Future<void> addExternalOrders({required int price, required String order});
   Future<List<ExternalOrdersModel>> getExternalOrders();
   Future<void> deleteExternalOrder(String id);
+  Future<void> clearAllExternalOrders();
+  Future<void> clearAllOutComes();
 }

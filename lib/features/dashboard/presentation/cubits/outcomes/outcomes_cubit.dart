@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:quarto/features/dashboard/data/model/outcomes_model.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_outcome_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/clear_all_outcomes_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_outcome_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_outcomes_usecase.dart';
 
@@ -11,10 +12,12 @@ class OutcomesCubit extends Cubit<OutcomesState> {
   final AddOutcomeUsecase addOutcomeUsecase;
   final GetOutcomesUsecase getOutcomesUsecase;
   final DeleteOutcomeUsecase deleteOutcomeUsecase;
+  final ClearAllOutcomesUsecase clearAllOutcomesUsecase;
   OutcomesCubit({
     required this.addOutcomeUsecase,
     required this.getOutcomesUsecase,
     required this.deleteOutcomeUsecase,
+    required this.clearAllOutcomesUsecase,
   }) : super(OutcomesInitial());
 
   Future<void> addOutcomesFunc({
@@ -52,6 +55,18 @@ class OutcomesCubit extends Cubit<OutcomesState> {
       emit(SuccessDeleteOutcome());
     } catch (e) {
       emit(ErrorDeleteOutcome(message: e.toString()));
+    }
+  }
+
+  Future<void> clearAllOutComesOrders() async {
+    emit(LoadingClearAllOutcomes());
+    try {
+      await clearAllOutcomesUsecase();
+      emit(
+        SuccessClearAllOutcomes(),
+      );
+    } catch (e) {
+      emit(ErrorClearAllOutcomes(message: e.toString()));
     }
   }
 }

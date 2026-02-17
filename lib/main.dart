@@ -73,6 +73,7 @@ class MyApp extends StatelessWidget {
             addExternalOrderUsecase: sl(),
             getExternalOrdersUsecase: sl(),
             deleteExternalOrder: sl(),
+            clearAllExternalOrdersUsecase: sl(),
           ),
         ),
         BlocProvider(
@@ -80,6 +81,7 @@ class MyApp extends StatelessWidget {
             addOutcomeUsecase: sl(),
             getOutcomesUsecase: sl(),
             deleteOutcomeUsecase: sl(),
+            clearAllOutcomesUsecase: sl(),
           ),
         ),
         BlocProvider(

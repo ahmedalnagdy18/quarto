@@ -40,3 +40,13 @@ class ErrorDeleteOutcome extends OutcomesState {
   final String message;
   ErrorDeleteOutcome({required this.message});
 }
+
+class LoadingClearAllOutcomes extends OutcomesState {}
+
+class SuccessClearAllOutcomes extends OutcomesState {}
+
+class ErrorClearAllOutcomes extends OutcomesState {
+  final String message;
+
+  ErrorClearAllOutcomes({required this.message});
+}

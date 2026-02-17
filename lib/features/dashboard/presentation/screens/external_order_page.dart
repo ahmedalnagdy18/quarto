@@ -4,6 +4,8 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/orders_invoice_page.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/export_order_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/external_order_dailog_widget.dart';
 
 class ExternalOrderPage extends StatefulWidget {
@@ -72,7 +74,108 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
+                      // export & clear orders buttons
+                      (state is SuccessGetExternalOrders &&
+                              state.data.isNotEmpty)
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                ButtonWidget(
+                                  onPressed: () {
+                                    ExportOrdersHelper.exportToExcel(
+                                      context,
+                                      state.data,
+                                    );
+                                  },
+                                  title: 'Export Orders',
+                                ),
+                                ButtonWidget(
+                                  onPressed: () async {
+                                    final bool?
+                                    confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          backgroundColor: AppColors.bgDark,
+                                          title: const Text(
+                                            "Confirm Reset",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          content: const Text(
+                                            "Are you sure you want to reset all orders? This action cannot be undone.",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(
+                                                  context,
+                                                ).pop(false); // User pressed No
+                                              },
+                                              child: const Text(
+                                                "Cancel",
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.of(
+                                                  context,
+                                                ).pop(true); // User pressed Yes
+                                              },
+                                              child: const Text(
+                                                "Yes, Reset",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
 
+                                    if (confirm == true) {
+                                      context
+                                          .read<ExternalOrdersCubit>()
+                                          .clearAllExternalOrders();
+                                    }
+                                  },
+                                  title: 'Reset All',
+                                ),
+                              ],
+                            )
+                          : Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 100),
+                                child: Text(
+                                  "No orders found",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                      const SizedBox(height: 20),
                       // ADDED: Total price display
                       if (state is SuccessGetExternalOrders &&
                           state.data.isNotEmpty) ...[

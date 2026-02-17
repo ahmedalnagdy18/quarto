@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
+import 'package:quarto/features/dashboard/presentation/widgets/export_outcomes_widget.dart';
 
 class OutComesPage extends StatefulWidget {
   const OutComesPage({super.key});
@@ -169,6 +171,107 @@ class _OutComesPageState extends State<OutComesPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 20),
+                      // export & clear outcomes buttons
+                      (state is SuccessGetOutcomes && state.data.isNotEmpty)
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                ButtonWidget(
+                                  onPressed: () {
+                                    ExportOutcomesHelper.exportSimple(
+                                      context,
+                                      state.data,
+                                    );
+                                  },
+                                  title: 'Export Outcomes',
+                                ),
+                                ButtonWidget(
+                                  onPressed: () async {
+                                    final bool?
+                                    confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          backgroundColor: AppColors.bgDark,
+                                          title: const Text(
+                                            "Confirm Reset",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          content: const Text(
+                                            "Are you sure you want to reset all outcomes? This action cannot be undone.",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(
+                                                  context,
+                                                ).pop(false); // User pressed No
+                                              },
+                                              child: const Text(
+                                                "Cancel",
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.of(
+                                                  context,
+                                                ).pop(true); // User pressed Yes
+                                              },
+                                              child: const Text(
+                                                "Yes, Reset",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+
+                                    if (confirm == true) {
+                                      context
+                                          .read<OutcomesCubit>()
+                                          .clearAllOutComesOrders();
+                                    }
+                                  },
+                                  title: 'Reset All',
+                                ),
+                              ],
+                            )
+                          : Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 100),
+                                child: Text(
+                                  "No outcomes found",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
                       const SizedBox(height: 20),
 
                       // ADDED: Total price display

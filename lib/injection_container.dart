@@ -4,6 +4,8 @@ import 'package:quarto/features/dashboard/domain/repository/dashboard_repository
 import 'package:quarto/features/dashboard/domain/usecases/add_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_orders_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_outcome_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/clear_all_external_orders_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/clear_all_outcomes_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_external_order.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_outcome_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/end_session_usecase.dart';
@@ -71,5 +73,11 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<DeleteExternalOrder>(
     () => DeleteExternalOrder(repository: sl()),
+  );
+  sl.registerLazySingleton<ClearAllExternalOrdersUsecase>(
+    () => ClearAllExternalOrdersUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<ClearAllOutcomesUsecase>(
+    () => ClearAllOutcomesUsecase(repository: sl()),
   );
 }

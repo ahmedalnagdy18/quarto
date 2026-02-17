@@ -40,3 +40,13 @@ class ErrorDeleteExternalOrder extends ExternalOrdersState {
   final String message;
   ErrorDeleteExternalOrder({required this.message});
 }
+
+class LoadingClearExternalOrders extends ExternalOrdersState {}
+
+class SuccessClearExternalOrders extends ExternalOrdersState {}
+
+class ErrorClearExternalOrders extends ExternalOrdersState {
+  final String message;
+
+  ErrorClearExternalOrders({required this.message});
+}

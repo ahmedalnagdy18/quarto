@@ -557,4 +557,29 @@ class DashboardRepositoryImp implements DashboardRepository {
         .map((json) => ExternalOrdersModel.fromJson(json))
         .toList();
   }
+
+  @override
+  Future<void> clearAllExternalOrders() async {
+    try {
+      await supabase
+          .from('external_orders')
+          .delete()
+          .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> clearAllOutComes() async {
+    try {
+      await supabase
+          .from('outcomes')
+          .delete()
+          .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
+      // print("susscess");
+    } catch (e) {
+      throw Exception('Failed to clear all outcomes: $e');
+    }
+  }
 }
