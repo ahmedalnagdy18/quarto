@@ -72,20 +72,45 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                     child: Text('Coffee'),
                   ),
                   DropdownMenuItem(
+                    value: 'Coffee d',
+                    child: Text('Coffee d'),
+                  ),
+                  DropdownMenuItem(
                     value: 'Tea',
                     child: Text('Tea'),
                   ),
                   DropdownMenuItem(
-                    value: 'Cola',
-                    child: Text('Cola'),
+                    value: 'Herbs',
+                    child: Text('Herbs'),
                   ),
                   DropdownMenuItem(
                     value: 'RedPull',
                     child: Text('RedPull'),
                   ),
+                  // ------------------ new item -----------
                   DropdownMenuItem(
-                    value: 'Others',
-                    child: Text('Others'),
+                    value: 'V cola',
+                    child: Text('V cola'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Moussy',
+                    child: Text('Moussy'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Msjito',
+                    child: Text('Msjito'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Msjito f',
+                    child: Text('Msjito f'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Latte f',
+                    child: Text('Latte f'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Classic latte',
+                    child: Text('Classic latte'),
                   ),
                 ],
                 onChanged: (value) {
@@ -144,15 +169,14 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
 
   void _loadExistingOrders() {
     // تحويل ordersList من SessionHistory إلى OrderItemData
-    _existingOrders =
-        widget.sessionHistory.ordersList
-            .map(
-              (orderItem) => OrderItemData(
-                name: orderItem.name,
-                price: orderItem.price,
-              ),
-            )
-            .toList();
+    _existingOrders = widget.sessionHistory.ordersList
+        .map(
+          (orderItem) => OrderItemData(
+            name: orderItem.name,
+            price: orderItem.price,
+          ),
+        )
+        .toList();
   }
 
   // دالة لحساب تكلفة الجلسة بدون أوردرات
@@ -190,24 +214,23 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
           isMobile
               ? SizedBox()
               : Padding(
-                padding: const EdgeInsets.only(right: 20),
-                child: IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => InvoicePage(
-                              sessionHistory: widget.sessionHistory,
-                              room: widget.room,
-                              orderItem: _existingOrders,
-                            ),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.receipt),
+                  padding: const EdgeInsets.only(right: 20),
+                  child: IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => InvoicePage(
+                            sessionHistory: widget.sessionHistory,
+                            room: widget.room,
+                            orderItem: _existingOrders,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.receipt),
+                  ),
                 ),
-              ),
         ],
       ),
       body: BlocConsumer<RoomsCubit, RoomsState>(
@@ -259,76 +282,74 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
 
                     _section(
                       title: 'DRINKS',
-                      trailing:
-                          isMobile
-                              ? SizedBox()
-                              : IconButton(
-                                icon: const Icon(
-                                  Icons.add,
-                                  color: Colors.white,
-                                ),
-                                onPressed: _addOrderDialog,
+                      trailing: isMobile
+                          ? SizedBox()
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.add,
+                                color: Colors.white,
                               ),
-                      child:
-                          _existingOrders.isEmpty && _orders.isEmpty
-                              ? Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(
-                                  'No drinks added',
-                                  style: AppTexts.smallBody.copyWith(
-                                    color: Colors.grey,
-                                  ),
+                              onPressed: _addOrderDialog,
+                            ),
+                      child: _existingOrders.isEmpty && _orders.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(
+                                'No drinks added',
+                                style: AppTexts.smallBody.copyWith(
+                                  color: Colors.grey,
                                 ),
-                              )
-                              : Column(
-                                children: [
-                                  // عرض الـ orders الموجودة مسبقاً
-                                  ..._existingOrders.map((order) {
-                                    return _row(
-                                      order.name,
-                                      '${order.price.toStringAsFixed(0)} \$',
-                                      trailing: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(
-                                            0.2,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                // عرض الـ orders الموجودة مسبقاً
+                                ..._existingOrders.map((order) {
+                                  return _row(
+                                    order.name,
+                                    '${order.price.toStringAsFixed(0)} \$',
+                                    trailing: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(
+                                          0.2,
                                         ),
-                                        child: Text(
-                                          'Saved',
-                                          style: AppTexts.smallBody.copyWith(
-                                            fontSize: 10,
-                                            color: Colors.green,
-                                          ),
+                                        borderRadius: BorderRadius.circular(
+                                          4,
                                         ),
                                       ),
-                                    );
-                                  }),
+                                      child: Text(
+                                        'Saved',
+                                        style: AppTexts.smallBody.copyWith(
+                                          fontSize: 10,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
 
-                                  // عرض الـ orders الجديدة
-                                  ..._orders.map((order) {
-                                    return _row(
-                                      order.name,
-                                      '${order.price.toStringAsFixed(0)} \$',
-                                      trailing: InkWell(
-                                        onTap: () {
-                                          setState(() {
-                                            _orders.remove(order);
-                                          });
-                                        },
-                                        child: const Icon(
-                                          Icons.close,
-                                          size: 16,
-                                          color: Colors.redAccent,
-                                        ),
+                                // عرض الـ orders الجديدة
+                                ..._orders.map((order) {
+                                  return _row(
+                                    order.name,
+                                    '${order.price.toStringAsFixed(0)} \$',
+                                    trailing: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _orders.remove(order);
+                                        });
+                                      },
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.redAccent,
                                       ),
-                                    );
-                                  }),
-                                ],
-                              ),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
                     ),
 
                     const SizedBox(height: 16),
@@ -368,36 +389,36 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                     isMobile
                         ? SizedBox()
                         : ElevatedButton(
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStatePropertyAll(
-                              AppColors.primaryBlue,
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStatePropertyAll(
+                                AppColors.primaryBlue,
+                              ),
+                              foregroundColor: MaterialStatePropertyAll(
+                                Colors.white,
+                              ),
                             ),
-                            foregroundColor: MaterialStatePropertyAll(
-                              Colors.white,
-                            ),
-                          ),
-                          onPressed: () {
-                            if (_orders.isNotEmpty) {
-                              final ordersToSend =
-                                  _orders
-                                      .map(
-                                        (o) => OrderItem(
-                                          name: o.name,
-                                          price: o.price,
-                                        ),
-                                      )
-                                      .toList();
+                            onPressed: () {
+                              if (_orders.isNotEmpty) {
+                                final ordersToSend = _orders
+                                    .map(
+                                      (o) => OrderItem(
+                                        name: o.name,
+                                        price: o.price,
+                                      ),
+                                    )
+                                    .toList();
 
-                              // ⭐ أضف sessionId هنا
-                              context.read<RoomsCubit>().addOrders(
-                                widget.room.id,
-                                ordersToSend,
-                                sessionId: widget.sessionId, // ⭐ أرسل ID الجلسة
-                              );
-                            }
-                          },
-                          child: const Text('Add'),
-                        ),
+                                // ⭐ أضف sessionId هنا
+                                context.read<RoomsCubit>().addOrders(
+                                  widget.room.id,
+                                  ordersToSend,
+                                  sessionId:
+                                      widget.sessionId, // ⭐ أرسل ID الجلسة
+                                );
+                              }
+                            },
+                            child: const Text('Add'),
+                          ),
                   ],
                 ),
               ),

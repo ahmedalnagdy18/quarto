@@ -27,14 +27,17 @@ class OrdersInvoicePage extends StatefulWidget {
 class _InvoicePageState extends State<OrdersInvoicePage> {
   final Map<String, double> _menuItems = {
     'Water': 10,
-    'Coffee': 35,
-    'Tea': 20,
-    'Cola': 20,
-    'RedPull': 100,
-    'Espresso': 70,
-    'Cappuccino': 50,
-    'Latte': 50,
-    'Hot Chocolate': 50,
+    'Coffee': 30,
+    'Coffee d': 40,
+    'Tea': 25,
+    'Herbs': 25,
+    'RedPull': 90,
+    'V cola': 40,
+    'Moussy': 40,
+    'Msjito': 65,
+    'Msjito f': 75,
+    'Latte f': 110,
+    'Classic latte': 110,
   };
 
   int get _ordersTotal => widget.totalPrice;
