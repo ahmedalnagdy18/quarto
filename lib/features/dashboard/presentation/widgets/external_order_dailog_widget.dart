@@ -34,16 +34,15 @@ class _ExternalOrderDialogWidgetState extends State<ExternalOrderDialogWidget> {
 
   String selectedDrink = 'Water';
   final Map<String, double> _menuItems = {
-    'Water': 5,
-    'Coffee': 15,
-    'Tea': 10,
-    'Cola': 8,
-    'RedPull': 12,
-    'Espresso': 20,
-    'Cappuccino': 25,
-    'Latte': 22,
-    'Hot Chocolate': 18,
-    'Others': 0,
+    'Water': 10,
+    'Coffee': 35,
+    'Tea': 20,
+    'Cola': 20,
+    'RedPull': 100,
+    'Espresso': 70,
+    'Cappuccino': 50,
+    'Latte': 50,
+    'Hot Chocolate': 50,
   };
 
   double get totalPrice {
@@ -197,6 +196,7 @@ class _ExternalOrderDialogWidgetState extends State<ExternalOrderDialogWidget> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
+                    readOnly: true,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
                         RegExp(r'^\d*\.?\d{0,2}'),
