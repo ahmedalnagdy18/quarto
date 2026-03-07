@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:quarto/features/dashboard/data/repository_imp/dashboard_repository_imp.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
+import 'package:quarto/features/dashboard/domain/usecases/add_comment_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_orders_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_outcome_usecase.dart';
@@ -79,5 +80,8 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<ClearAllOutcomesUsecase>(
     () => ClearAllOutcomesUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<AddCommentUsecase>(
+    () => AddCommentUsecase(repository: sl()),
   );
 }

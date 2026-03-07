@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/core/services/outcomes_export_service.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
-import 'package:quarto/features/dashboard/presentation/widgets/export_outcomes_widget.dart';
 
 class OutComesPage extends StatefulWidget {
   const OutComesPage({super.key});
@@ -180,7 +180,7 @@ class _OutComesPageState extends State<OutComesPage> {
                               children: [
                                 ButtonWidget(
                                   onPressed: () {
-                                    ExportOutcomesHelper.exportSimple(
+                                    OutcomesExportService.exportOutcomes(
                                       context,
                                       state.data,
                                     );
@@ -233,6 +233,10 @@ class _OutComesPageState extends State<OutComesPage> {
                                                 ),
                                               ),
                                               onPressed: () {
+                                                OutcomesExportService.exportOutcomes(
+                                                  context,
+                                                  state.data,
+                                                );
                                                 Navigator.of(
                                                   context,
                                                 ).pop(true); // User pressed Yes

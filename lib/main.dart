@@ -66,6 +66,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (context) => SessionHistoryCubit(
             getRoomHistoryUsecase: sl(),
+            addCommentUsecase: sl(),
           ),
         ),
         BlocProvider(

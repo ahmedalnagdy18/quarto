@@ -34,4 +34,5 @@ abstract class DashboardRepository {
   Future<void> deleteExternalOrder(String id);
   Future<void> clearAllExternalOrders();
   Future<void> clearAllOutComes();
+  Future<void> addComments(String comments, String roomId, {String? sessionId});
 }

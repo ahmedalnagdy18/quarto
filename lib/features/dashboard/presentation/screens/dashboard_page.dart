@@ -6,7 +6,7 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_loading_widget.dart';
 import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
-import 'package:quarto/core/utils/internet_connection_mixin.dart';
+import 'package:quarto/core/services/export_service.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
@@ -54,6 +54,7 @@ class _StartNewDayDialogState extends State<StartNewDayDialog> {
         .findAncestorStateOfType<_DashboardPageState>();
 
     try {
+      await ExportService.exportData(widget.parentContext);
       await dashboardCubit.startNewDay();
       await roomsCubit.refresh();
 
@@ -163,8 +164,7 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage>
-    with InternetConnectionMixin {
+class _DashboardPageState extends State<DashboardPage> {
   Room? _selectedRoom;
 
   @override
@@ -665,6 +665,7 @@ class _DashboardPageState extends State<DashboardPage>
           DataColumn(label: Text("Orders")), // تكلفة الأوردرات فقط
           DataColumn(label: Text("Total")), // الإجمالي (الجلسة + الأوردرات)
           DataColumn(label: Text("Details")),
+          DataColumn(label: Text("Comments")),
         ],
         rows: history.asMap().entries.map((entry) {
           final index = entry.key;
@@ -722,6 +723,17 @@ class _DashboardPageState extends State<DashboardPage>
                     size: 18,
                   ),
                 ),
+              ),
+              DataCell(
+                session.comments != 'null'
+                    ? Icon(
+                        Icons.waving_hand,
+                        color: Colors.amber,
+                      )
+                    : Icon(
+                        Icons.done_sharp,
+                        color: Colors.white,
+                      ),
               ),
             ],
           );

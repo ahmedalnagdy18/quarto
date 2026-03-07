@@ -136,6 +136,10 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                                 ),
                                               ),
                                               onPressed: () {
+                                                ExportOrdersHelper.exportToExcel(
+                                                  context,
+                                                  state.data,
+                                                );
                                                 Navigator.of(
                                                   context,
                                                 ).pop(true); // User pressed Yes

@@ -582,4 +582,70 @@ class DashboardRepositoryImp implements DashboardRepository {
       throw Exception('Failed to clear all outcomes: $e');
     }
   }
+
+  @override
+  Future<void> addComments(
+    String comments,
+    String roomId, {
+    String? sessionId,
+  }) async {
+    try {
+      if (comments.isEmpty) return;
+
+      // إذا عندك sessionId محدد
+      if (sessionId != null && sessionId.isNotEmpty) {
+        await supabase
+            .from('session_history')
+            .update({
+              'comments': comments,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', sessionId);
+
+        print("✅ Added comment to session: $sessionId");
+      } else {
+        // البحث عن آخر جلسة نشطة
+        final activeSession = await _getActiveSession(roomId);
+
+        if (activeSession != null) {
+          await supabase
+              .from('session_history')
+              .update({
+                'comments': comments,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', activeSession['id']);
+
+          print("✅ Added comment to active session: $roomId");
+        } else {
+          // البحث عن آخر جلسة منتهية
+          final lastSession = await supabase
+              .from('session_history')
+              .select()
+              .eq('room_id', roomId)
+              .not('end_time', 'is', null)
+              .order('end_time', ascending: false)
+              .limit(1)
+              .maybeSingle();
+
+          if (lastSession != null) {
+            await supabase
+                .from('session_history')
+                .update({
+                  'comments': comments,
+                  'updated_at': DateTime.now().toIso8601String(),
+                })
+                .eq('id', lastSession['id']);
+
+            print("✅ Added comment to last session: $roomId");
+          } else {
+            print("⚠️ No sessions found for room: $roomId");
+          }
+        }
+      }
+    } catch (e) {
+      print("❌ Error adding comment: $e");
+      rethrow;
+    }
+  }
 }

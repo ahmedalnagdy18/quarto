@@ -3,6 +3,7 @@ import 'package:quarto/features/dashboard/data/model/room_model.dart';
 
 class SessionHistory {
   final String id;
+  final String? comments;
   final String roomId;
   final DateTime startTime;
   final DateTime? endTime;
@@ -15,6 +16,7 @@ class SessionHistory {
 
   SessionHistory({
     required this.id,
+    this.comments,
     required this.roomId,
     required this.startTime,
     this.endTime,
@@ -43,6 +45,7 @@ class SessionHistory {
 
     return SessionHistory(
       id: json['id'].toString(),
+      comments: json['comments'].toString(),
       roomId: json['room_id'].toString(),
       startTime: parseTime(json['start_time']),
       endTime: json['end_time'] != null ? parseTime(json['end_time']) : null,

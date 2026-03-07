@@ -7,6 +7,7 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/invoice_page.dart';
 
 /// -------- LOCAL ORDER MODEL (NO IMPACT ON YOUR MODELS) --------
@@ -42,6 +43,10 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
 
   final List<OrderItemData> _orders = [];
   List<OrderItemData> _existingOrders = [];
+
+  // ⭐ متغير لتحديث الكومنت محلياً
+  String? _currentComment;
+
   void _addOrderDialog() {
     String selectedDrink = 'Water';
     final priceController = TextEditingController();
@@ -63,59 +68,23 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                 dropdownColor: AppColors.bgDark,
                 style: AppTexts.smallBody,
                 items: [
-                  DropdownMenuItem(
-                    value: 'Water',
-                    child: Text('Water'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Coffee',
-                    child: Text('Coffee'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Coffee d',
-                    child: Text('Coffee d'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Tea',
-                    child: Text('Tea'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Herbs',
-                    child: Text('Herbs'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'RedPull',
-                    child: Text('RedPull'),
-                  ),
-                  // ------------------ new item -----------
-                  DropdownMenuItem(
-                    value: 'V cola',
-                    child: Text('V cola'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Moussy',
-                    child: Text('Moussy'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Msjito',
-                    child: Text('Msjito'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Msjito f',
-                    child: Text('Msjito f'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Latte f',
-                    child: Text('Latte f'),
-                  ),
+                  DropdownMenuItem(value: 'Water', child: Text('Water')),
+                  DropdownMenuItem(value: 'Coffee', child: Text('Coffee')),
+                  DropdownMenuItem(value: 'Coffee d', child: Text('Coffee d')),
+                  DropdownMenuItem(value: 'Tea', child: Text('Tea')),
+                  DropdownMenuItem(value: 'Herbs', child: Text('Herbs')),
+                  DropdownMenuItem(value: 'RedPull', child: Text('RedPull')),
+                  DropdownMenuItem(value: 'V cola', child: Text('V cola')),
+                  DropdownMenuItem(value: 'Moussy', child: Text('Moussy')),
+                  DropdownMenuItem(value: 'Msjito', child: Text('Msjito')),
+                  DropdownMenuItem(value: 'Msjito f', child: Text('Msjito f')),
+                  DropdownMenuItem(value: 'Latte f', child: Text('Latte f')),
                   DropdownMenuItem(
                     value: 'Classic latte',
                     child: Text('Classic latte'),
                   ),
                 ],
-                onChanged: (value) {
-                  selectedDrink = value!;
-                },
+                onChanged: (value) => selectedDrink = value!,
                 decoration: InputDecoration(
                   labelText: 'Drink',
                   labelStyle: AppTexts.smallHeading,
@@ -123,9 +92,7 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
               ),
               const SizedBox(height: 12),
               TextField(
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: priceController,
                 keyboardType: TextInputType.number,
                 style: AppTexts.smallBody,
@@ -161,14 +128,63 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
     );
   }
 
+  void _showCommentDialog(BuildContext context) {
+    final commentController = TextEditingController(
+      text: _currentComment == "null" ? "" : _currentComment,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Comment'),
+          content: TextField(
+            controller: commentController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Enter your comment...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (commentController.text.isNotEmpty) {
+                  await context.read<SessionHistoryCubit>().addCommentFunc(
+                    comments: commentController.text,
+                    roomId: widget.room.id,
+                    sessionId: widget.sessionId,
+                  );
+
+                  // ⭐ تحديث محلي بدون انتظار تحميل البيانات
+                  setState(() {
+                    _currentComment = commentController.text;
+                  });
+
+                  if (mounted) Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _loadExistingOrders();
+    // ⭐ تحميل الكومنت الحالي
+    _currentComment = widget.sessionHistory.comments;
   }
 
   void _loadExistingOrders() {
-    // تحويل ordersList من SessionHistory إلى OrderItemData
     _existingOrders = widget.sessionHistory.ordersList
         .map(
           (orderItem) => OrderItemData(
@@ -179,7 +195,6 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
         .toList();
   }
 
-  // دالة لحساب تكلفة الجلسة بدون أوردرات
   double _calculateSessionCost() {
     if (widget.sessionHistory.endTime == null) return 0.0;
     final duration = widget.sessionHistory.endTime!.difference(
@@ -189,12 +204,10 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
     return hours * widget.sessionHistory.hourlyRate;
   }
 
-  // حساب الأوردرات الجديدة فقط
   double get _newOrdersTotal {
     return _orders.fold<double>(0.0, (sum, item) => sum + item.price);
   }
 
-  // حساب الأوردرات الموجودة فقط
   double get _existingOrdersTotal {
     return _existingOrders.fold<double>(0.0, (sum, item) => sum + item.price);
   }
@@ -203,228 +216,321 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
   Widget build(BuildContext context) {
     final sessionCost = _calculateSessionCost();
 
-    return Scaffold(
-      backgroundColor: AppColors.bgCard,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgDark,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(widget.room.name, style: AppTexts.smallHeading),
-        centerTitle: true,
-        actions: [
-          isMobile
-              ? SizedBox()
-              : Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => InvoicePage(
-                            sessionHistory: widget.sessionHistory,
-                            room: widget.room,
-                            orderItem: _existingOrders,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.receipt),
-                  ),
-                ),
-        ],
-      ),
-      body: BlocConsumer<RoomsCubit, RoomsState>(
-        listener: (context, state) {
-          if (state is RoomOrdersAdded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Orders added successfully'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
+    return BlocListener<SessionHistoryCubit, SessionHistoryState>(
+      listener: (context, state) {
+        if (state is SuccessAddComment) {
+          // ⭐ تحديث من الـ Cubit كـ backup
+          setState(() {
+            _currentComment = state.comment;
+          });
 
-            Navigator.pop(context);
-          }
-        },
-        builder: (context, state) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: SizedBox(
-                width: 520,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _section(
-                      title: 'SESSION INFO',
-                      child: Column(
-                        children: [
-                          _row(
-                            'Start',
-                            widget.sessionHistory.startTimeShort,
-                          ),
-                          _row('End', widget.sessionHistory.endTimeShort),
-                          _row(
-                            'Duration',
-                            widget.sessionHistory.formattedDuration,
-                          ),
-                          if (widget.sessionHistory.sessionTypeInfo.isNotEmpty)
-                            _row(
-                              'Type',
-                              widget.sessionHistory.sessionTypeInfo,
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _section(
-                      title: 'DRINKS',
-                      trailing: isMobile
-                          ? SizedBox()
-                          : IconButton(
-                              icon: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                              ),
-                              onPressed: _addOrderDialog,
-                            ),
-                      child: _existingOrders.isEmpty && _orders.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(
-                                'No drinks added',
-                                style: AppTexts.smallBody.copyWith(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            )
-                          : Column(
-                              children: [
-                                // عرض الـ orders الموجودة مسبقاً
-                                ..._existingOrders.map((order) {
-                                  return _row(
-                                    order.name,
-                                    '${order.price.toStringAsFixed(0)} \$',
-                                    trailing: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(
-                                          0.2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          4,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Saved',
-                                        style: AppTexts.smallBody.copyWith(
-                                          fontSize: 10,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }),
-
-                                // عرض الـ orders الجديدة
-                                ..._orders.map((order) {
-                                  return _row(
-                                    order.name,
-                                    '${order.price.toStringAsFixed(0)} \$',
-                                    trailing: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _orders.remove(order);
-                                        });
-                                      },
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 16,
-                                        color: Colors.redAccent,
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ],
-                            ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _section(
-                      title: 'SUMMARY',
-                      child: Column(
-                        children: [
-                          // Option 1: تفصيلي
-                          _row(
-                            'Session Time Cost',
-                            '${sessionCost.toStringAsFixed(0)} \$',
-                          ),
-
-                          _row(
-                            'Drinks',
-                            '${_existingOrdersTotal.toStringAsFixed(0)} \$',
-                          ),
-
-                          if (_orders.isNotEmpty)
-                            _row(
-                              'New Drinks',
-                              '+ ${_newOrdersTotal.toStringAsFixed(0)} \$',
-                            ),
-
-                          const Divider(color: Colors.grey),
-
-                          _row(
-                            'TOTAL',
-                            '${(widget.sessionHistory.totalCost + _newOrdersTotal).toStringAsFixed(0)} \$',
-                            isTotal: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    isMobile
-                        ? SizedBox()
-                        : ElevatedButton(
-                            style: ButtonStyle(
-                              backgroundColor: MaterialStatePropertyAll(
-                                AppColors.primaryBlue,
-                              ),
-                              foregroundColor: MaterialStatePropertyAll(
-                                Colors.white,
-                              ),
-                            ),
-                            onPressed: () {
-                              if (_orders.isNotEmpty) {
-                                final ordersToSend = _orders
-                                    .map(
-                                      (o) => OrderItem(
-                                        name: o.name,
-                                        price: o.price,
-                                      ),
-                                    )
-                                    .toList();
-
-                                // ⭐ أضف sessionId هنا
-                                context.read<RoomsCubit>().addOrders(
-                                  widget.room.id,
-                                  ordersToSend,
-                                  sessionId:
-                                      widget.sessionId, // ⭐ أرسل ID الجلسة
-                                );
-                              }
-                            },
-                            child: const Text('Add'),
-                          ),
-                  ],
-                ),
-              ),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Comment added successfully'),
+              backgroundColor: Colors.green,
             ),
           );
-        },
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.bgCard,
+        appBar: AppBar(
+          backgroundColor: AppColors.bgDark,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: Text(widget.room.name, style: AppTexts.smallHeading),
+          centerTitle: true,
+          actions: [
+            if (!isMobile)
+              Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InvoicePage(
+                          sessionHistory: widget.sessionHistory,
+                          room: widget.room,
+                          orderItem: _existingOrders,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.receipt),
+                ),
+              ),
+          ],
+        ),
+        body: BlocConsumer<RoomsCubit, RoomsState>(
+          listener: (context, state) {
+            if (state is RoomOrdersAdded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Orders added successfully'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              Navigator.pop(context);
+            }
+          },
+          builder: (context, state) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: SizedBox(
+                  width: 520,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _section(
+                        title: 'SESSION INFO',
+                        child: Column(
+                          children: [
+                            _row('Start', widget.sessionHistory.startTimeShort),
+                            _row('End', widget.sessionHistory.endTimeShort),
+                            _row(
+                              'Duration',
+                              widget.sessionHistory.formattedDuration,
+                            ),
+                            if (widget
+                                .sessionHistory
+                                .sessionTypeInfo
+                                .isNotEmpty)
+                              _row(
+                                'Type',
+                                widget.sessionHistory.sessionTypeInfo,
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _section(
+                        title: 'DRINKS',
+                        trailing: isMobile
+                            ? null
+                            : IconButton(
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _addOrderDialog,
+                              ),
+                        child: _existingOrders.isEmpty && _orders.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Text(
+                                  'No drinks added',
+                                  style: AppTexts.smallBody.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  ..._existingOrders.map((order) {
+                                    return _row(
+                                      order.name,
+                                      '${order.price.toStringAsFixed(0)} \$',
+                                      trailing: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Saved',
+                                          style: AppTexts.smallBody.copyWith(
+                                            fontSize: 10,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  ..._orders.map((order) {
+                                    return _row(
+                                      order.name,
+                                      '${order.price.toStringAsFixed(0)} \$',
+                                      trailing: InkWell(
+                                        onTap: () {
+                                          setState(() => _orders.remove(order));
+                                        },
+                                        child: const Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // ⭐ قسم التعليقات - تحديث مباشر
+                      _section(
+                        title: "COMMENTS",
+                        child: Column(
+                          children: [
+                            if (_currentComment != null &&
+                                _currentComment!.isNotEmpty &&
+                                _currentComment != 'null')
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgCardLight,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.primaryBlue.withOpacity(
+                                      0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.comment,
+                                          size: 16,
+                                          color: AppColors.primaryBlue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Comment:',
+                                          style: AppTexts.smallBody.copyWith(
+                                            color: AppColors.primaryBlue,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _currentComment!,
+                                      style: AppTexts.smallBody.copyWith(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Container(),
+
+                            const SizedBox(height: 8),
+
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        _currentComment != null &&
+                                            _currentComment!.isNotEmpty &&
+                                            _currentComment != 'null'
+                                        ? Colors.orange
+                                        : AppColors.primaryBlue,
+                                  ),
+                                  onPressed: () => _showCommentDialog(context),
+                                  icon: Icon(
+                                    _currentComment != null &&
+                                            _currentComment!.isNotEmpty &&
+                                            _currentComment != 'null'
+                                        ? Icons.edit
+                                        : Icons.add_comment,
+                                    color: Colors.white,
+                                  ),
+                                  label: Text(
+                                    _currentComment != null &&
+                                            _currentComment!.isNotEmpty &&
+                                            _currentComment != 'null'
+                                        ? 'Edit Comment'
+                                        : 'Add Comment',
+                                    style: AppTexts.smallBody.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      _section(
+                        title: 'SUMMARY',
+                        child: Column(
+                          children: [
+                            _row(
+                              'Session Time Cost',
+                              '${sessionCost.toStringAsFixed(0)} \$',
+                            ),
+                            _row(
+                              'Drinks',
+                              '${_existingOrdersTotal.toStringAsFixed(0)} \$',
+                            ),
+                            if (_orders.isNotEmpty)
+                              _row(
+                                'New Drinks',
+                                '+ ${_newOrdersTotal.toStringAsFixed(0)} \$',
+                              ),
+                            const Divider(color: Colors.grey),
+                            _row(
+                              'TOTAL',
+                              '${(widget.sessionHistory.totalCost + _newOrdersTotal).toStringAsFixed(0)} \$',
+                              isTotal: true,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      if (!isMobile && _orders.isNotEmpty)
+                        ElevatedButton(
+                          style: ButtonStyle(
+                            backgroundColor: MaterialStatePropertyAll(
+                              AppColors.primaryBlue,
+                            ),
+                            foregroundColor: MaterialStatePropertyAll(
+                              Colors.white,
+                            ),
+                          ),
+                          onPressed: () {
+                            final ordersToSend = _orders
+                                .map(
+                                  (o) =>
+                                      OrderItem(name: o.name, price: o.price),
+                                )
+                                .toList();
+
+                            context.read<RoomsCubit>().addOrders(
+                              widget.room.id,
+                              ordersToSend,
+                              sessionId: widget.sessionId,
+                            );
+                          },
+                          child: const Text('Add'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

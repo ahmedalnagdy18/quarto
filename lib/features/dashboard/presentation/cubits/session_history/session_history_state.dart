@@ -18,3 +18,16 @@ class SessionHistoryError extends SessionHistoryState {
 
   SessionHistoryError(this.message);
 }
+
+class LoadingAddComment extends SessionHistoryState {}
+
+class SuccessAddComment extends SessionHistoryState {
+  final String comment;
+  SuccessAddComment({required this.comment});
+}
+
+class ErrorAddComment extends SessionHistoryState {
+  final String message;
+
+  ErrorAddComment(this.message);
+}
