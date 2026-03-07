@@ -27,6 +27,10 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
     super.initState();
   }
 
+  List<DropdownMenuItem<bool>> items = [
+    DropdownMenuItem(value: true, child: Text('Yes')),
+    DropdownMenuItem(value: false, child: Text('No')),
+  ];
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ExternalOrdersCubit, ExternalOrdersState>(
@@ -34,7 +38,8 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
         if (state is ErrorGetExternalOrders) {
           print(state.message);
         }
-        if (state is SuccessDeleteExternalOrder) {
+        if (state is SuccessDeleteExternalOrder ||
+            state is SuccessEditExternalOrders) {
           context.read<ExternalOrdersCubit>().getExternalOrders();
         }
       },
@@ -240,7 +245,8 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                             MaterialPageRoute(
                                               builder: (context) =>
                                                   OrdersInvoicePage(
-                                                    orderId: '${index + 1}',
+                                                    orderId:
+                                                        '${state.data.length - index}',
                                                     orderItems:
                                                         state.data[index].order,
                                                     totalPrice:
@@ -257,7 +263,7 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                           children: [
                                             Expanded(
                                               child: Text(
-                                                "Order #${index + 1}",
+                                                "Order #${state.data.length - index}",
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w500,
@@ -281,6 +287,17 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
+                                            SizedBox(width: 12),
+                                            Icon(
+                                              state.data[index].payment == true
+                                                  ? Icons.verified
+                                                  : Icons.close,
+                                              color:
+                                                  state.data[index].payment ==
+                                                      true
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -299,6 +316,28 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                       Icons.delete,
                                       color: Colors.white,
                                     ),
+                                  ),
+                                  DropdownButton(
+                                    items: items,
+                                    onChanged: (value) async {
+                                      if (value != state.data[index].payment) {
+                                        await context
+                                            .read<ExternalOrdersCubit>()
+                                            .editExternalOrderFunc(
+                                              id: state.data[index].id,
+                                              price: state.data[index].price,
+                                              order: state.data[index].order,
+                                              payment:
+                                                  !state.data[index].payment,
+                                            );
+                                      }
+                                    },
+                                    icon: Icon(Icons.more_horiz),
+                                    underline: SizedBox(),
+                                    value: state.data[index].payment,
+                                    disabledHint: SizedBox(),
+                                    hint: SizedBox(),
+                                    focusColor: Colors.transparent,
                                   ),
                                 ],
                               );

@@ -4,6 +4,7 @@ import 'package:quarto/features/dashboard/data/model/external_orders_model.dart'
 import 'package:quarto/features/dashboard/domain/usecases/add_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/clear_all_external_orders_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_external_order.dart';
+import 'package:quarto/features/dashboard/domain/usecases/edit_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_external_orders_usecase.dart';
 
 part 'external_orders_state.dart';
@@ -13,11 +14,13 @@ class ExternalOrdersCubit extends Cubit<ExternalOrdersState> {
   final GetExternalOrdersUsecase getExternalOrdersUsecase;
   final DeleteExternalOrder deleteExternalOrder;
   final ClearAllExternalOrdersUsecase clearAllExternalOrdersUsecase;
+  final EditExternalOrderUsecase editExternalOrderUsecase;
   ExternalOrdersCubit({
     required this.addExternalOrderUsecase,
     required this.getExternalOrdersUsecase,
     required this.deleteExternalOrder,
     required this.clearAllExternalOrdersUsecase,
+    required this.editExternalOrderUsecase,
   }) : super(ExternalOrdersInitial());
 
   Future<void> addExternalOrderFunc({
@@ -67,6 +70,28 @@ class ExternalOrdersCubit extends Cubit<ExternalOrdersState> {
       );
     } catch (e) {
       emit(ErrorClearExternalOrders(message: e.toString()));
+    }
+  }
+
+  Future<void> editExternalOrderFunc({
+    required String id,
+    required int price,
+    required String order,
+    required bool payment,
+  }) async {
+    emit(LoadingEditExternalOrders());
+    try {
+      await editExternalOrderUsecase(
+        order: order,
+        price: price,
+        id: id,
+        payment: payment,
+      );
+      emit(
+        SuccessEditExternalOrders(),
+      );
+    } catch (e) {
+      emit(ErrorEditExternalOrders(message: e.toString()));
     }
   }
 }

@@ -35,4 +35,10 @@ abstract class DashboardRepository {
   Future<void> clearAllExternalOrders();
   Future<void> clearAllOutComes();
   Future<void> addComments(String comments, String roomId, {String? sessionId});
+  Future<void> editExternalOrders({
+    required String id,
+    required int price,
+    required String order,
+    required bool payment,
+  });
 }

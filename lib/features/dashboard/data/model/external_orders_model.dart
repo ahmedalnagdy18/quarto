@@ -2,11 +2,13 @@ class ExternalOrdersModel {
   final String id;
   final String order;
   final int price;
+  final bool payment;
 
   ExternalOrdersModel({
     required this.id,
     required this.order,
     required this.price,
+    required this.payment,
   });
 
   factory ExternalOrdersModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +16,7 @@ class ExternalOrdersModel {
       id: json['id']?.toString() ?? '',
       order: json['order'] ?? '',
       price: json['price'] ?? 0,
+      payment: json['payment'] ?? false,
     );
   }
 
@@ -22,6 +25,7 @@ class ExternalOrdersModel {
       'id': id,
       'order': order,
       'price': price,
+      'payment': payment,
     };
   }
 }

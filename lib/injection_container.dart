@@ -9,6 +9,7 @@ import 'package:quarto/features/dashboard/domain/usecases/clear_all_external_ord
 import 'package:quarto/features/dashboard/domain/usecases/clear_all_outcomes_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_external_order.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_outcome_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/edit_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/end_session_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_all_rooms_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
@@ -83,5 +84,8 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<AddCommentUsecase>(
     () => AddCommentUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<EditExternalOrderUsecase>(
+    () => EditExternalOrderUsecase(repository: sl()),
   );
 }

@@ -11,16 +11,18 @@ import 'package:share_plus/share_plus.dart';
 class OrdersExportService {
   // خريطة الأسعار
   static const Map<String, double> _menuItems = {
-    'Water': 5,
-    'Coffee': 15,
-    'Tea': 10,
-    'Cola': 8,
-    'RedPull': 12,
-    'Espresso': 20,
-    'Cappuccino': 25,
-    'Latte': 22,
-    'Hot Chocolate': 18,
-    'Others': 0,
+    'Water': 10,
+    'Coffee': 30,
+    'Coffee d': 40,
+    'Tea': 25,
+    'Herbs': 25,
+    'RedPull': 90,
+    'V cola': 40,
+    'Moussy': 40,
+    'Msjito': 65,
+    'Msjito f': 75,
+    'Latte f': 110,
+    'Classic latte': 110,
   };
 
   // دالة لتحليل الـ String واستخراج العناصر

@@ -550,7 +550,7 @@ class DashboardRepositoryImp implements DashboardRepository {
         .select() // This selects ALL columns
         .order(
           'id',
-          ascending: true,
+          ascending: false,
         ); // Or don't order if you don't have created_at
 
     return (response as List)
@@ -602,7 +602,7 @@ class DashboardRepositoryImp implements DashboardRepository {
             })
             .eq('id', sessionId);
 
-        print("✅ Added comment to session: $sessionId");
+        //    print("✅ Added comment to session: $sessionId");
       } else {
         // البحث عن آخر جلسة نشطة
         final activeSession = await _getActiveSession(roomId);
@@ -616,7 +616,7 @@ class DashboardRepositoryImp implements DashboardRepository {
               })
               .eq('id', activeSession['id']);
 
-          print("✅ Added comment to active session: $roomId");
+          //   print("✅ Added comment to active session: $roomId");
         } else {
           // البحث عن آخر جلسة منتهية
           final lastSession = await supabase
@@ -637,15 +637,39 @@ class DashboardRepositoryImp implements DashboardRepository {
                 })
                 .eq('id', lastSession['id']);
 
-            print("✅ Added comment to last session: $roomId");
+            // print("✅ Added comment to last session: $roomId");
           } else {
-            print("⚠️ No sessions found for room: $roomId");
+            //   print("⚠️ No sessions found for room: $roomId");
           }
         }
       }
     } catch (e) {
-      print("❌ Error adding comment: $e");
+      //  print("❌ Error adding comment: $e");
       rethrow;
+    }
+  }
+
+  @override
+  Future<void> editExternalOrders({
+    required String id, // ⭐ لازم الـ id عشان نعرف نعدل ايه
+    required int price,
+    required String order,
+    required bool payment,
+  }) async {
+    try {
+      await supabase
+          .from('external_orders')
+          .update({
+            "price": price,
+            "order": order,
+            "payment": payment,
+          })
+          .eq('id', id); // ⭐ الشرط المهم
+
+      // print("✅ Order updated successfully with ID: $id");
+    } catch (e) {
+      // print("❌ Error updating order: $e");
+      throw Exception('Failed to update order: $e');
     }
   }
 }
