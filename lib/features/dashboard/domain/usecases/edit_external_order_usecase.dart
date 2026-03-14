@@ -1,3 +1,4 @@
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
 
 class EditExternalOrderUsecase {
@@ -5,17 +6,7 @@ class EditExternalOrderUsecase {
 
   EditExternalOrderUsecase({required this.repository});
 
-  Future<void> call({
-    required String id,
-    required int price,
-    required String order,
-    required bool payment,
-  }) async {
-    await repository.editExternalOrders(
-      id: id,
-      order: order,
-      price: price,
-      payment: payment,
-    );
+  Future<void> call({required ExternalOrdersModel externalOrdersModel}) async {
+    await repository.editExternalOrders(externalOrdersModel);
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_loading_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
@@ -565,10 +566,17 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                               ExternalOrdersState
                             >(
                               builder: (context, state) {
-                                int calculateTotal(List<int> prices) {
-                                  return prices.fold(
+                                double calculateAllOrdersTotal(
+                                  List<ExternalOrdersModel> orders,
+                                ) {
+                                  return orders.fold(
                                     0,
-                                    (sum, price) => sum + price,
+                                    (sum, order) =>
+                                        sum +
+                                        order.order.fold(
+                                          0,
+                                          (subSum, item) => subSum + item.price,
+                                        ),
                                   );
                                 }
 
@@ -577,7 +585,7 @@ class _MobileDashboardPageState extends State<MobileDashboardPage> {
                                 }
                                 if (state is SuccessGetExternalOrders) {
                                   return Text(
-                                    "\$${calculateTotal(state.data.map((e) => e.price).toList())}",
+                                    "\$${calculateAllOrdersTotal(state.data).toStringAsFixed(0)}",
                                     style: AppTexts.largeHeading.copyWith(
                                       color: Colors.green,
                                     ),

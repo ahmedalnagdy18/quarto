@@ -24,12 +24,11 @@ class ExternalOrdersCubit extends Cubit<ExternalOrdersState> {
   }) : super(ExternalOrdersInitial());
 
   Future<void> addExternalOrderFunc({
-    required int price,
-    required String order,
+    required ExternalOrdersModel externalOrdersModel,
   }) async {
     emit(LoadingAddExternalOrders());
     try {
-      await addExternalOrderUsecase(order: order, price: price);
+      await addExternalOrderUsecase(externalOrdersModel: externalOrdersModel);
       emit(
         SuccessAddExternalOrders(),
       );
@@ -74,19 +73,11 @@ class ExternalOrdersCubit extends Cubit<ExternalOrdersState> {
   }
 
   Future<void> editExternalOrderFunc({
-    required String id,
-    required int price,
-    required String order,
-    required bool payment,
+    required ExternalOrdersModel externalOrdersModel,
   }) async {
     emit(LoadingEditExternalOrders());
     try {
-      await editExternalOrderUsecase(
-        order: order,
-        price: price,
-        id: id,
-        payment: payment,
-      );
+      await editExternalOrderUsecase(externalOrdersModel: externalOrdersModel);
       emit(
         SuccessEditExternalOrders(),
       );

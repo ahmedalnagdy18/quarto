@@ -520,14 +520,14 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<void> addExternalOrders({
-    required int price,
-    required String order,
-  }) async {
+  Future<void> addExternalOrders(
+    ExternalOrdersModel externalOrdersModel,
+  ) async {
     try {
       await supabase.from('external_orders').insert({
-        "price": price,
-        "order": order,
+        "table": externalOrdersModel.table,
+        "order": externalOrdersModel.order,
+        "payment": externalOrdersModel.payment,
       });
     } catch (e) {
       // Handle error appropriately
@@ -650,23 +650,21 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<void> editExternalOrders({
-    required String id, // ⭐ لازم الـ id عشان نعرف نعدل ايه
-    required int price,
-    required String order,
-    required bool payment,
-  }) async {
+  Future<void> editExternalOrders(
+    ExternalOrdersModel externalOrdersModel,
+  ) async {
     try {
       await supabase
           .from('external_orders')
           .update({
-            "price": price,
-            "order": order,
-            "payment": payment,
+            "id": externalOrdersModel.id,
+            "table": externalOrdersModel.table,
+            "order": externalOrdersModel.order,
+            "payment": externalOrdersModel.payment,
           })
-          .eq('id', id); // ⭐ الشرط المهم
+          .eq('id', externalOrdersModel.id); // ⭐ الشرط المهم
 
-      // print("✅ Order updated successfully with ID: $id");
+      // print("✅ Order updated successfully with ID: ${externalOrdersModel.id}");
     } catch (e) {
       // print("❌ Error updating order: $e");
       throw Exception('Failed to update order: $e');

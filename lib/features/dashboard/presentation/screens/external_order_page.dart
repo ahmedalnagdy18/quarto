@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/orders_invoice_page.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
@@ -17,8 +18,16 @@ class ExternalOrderPage extends StatefulWidget {
 
 class _ExternalOrderPageState extends State<ExternalOrderPage> {
   // Helper method to calculate total
-  int _calculateTotal(List<int> prices) {
-    return prices.fold(0, (sum, price) => sum + price);
+  double _calculateOrderTotal(List<ExternalOrderItem> orderItems) {
+    return orderItems.fold(0, (sum, item) => sum + item.price);
+  }
+
+  double _calculateAllOrdersTotal(List<ExternalOrdersModel> orders) {
+    return orders.fold(
+      0,
+      (sum, order) =>
+          sum + order.order.fold(0, (subSum, item) => subSum + item.price),
+    );
   }
 
   @override
@@ -68,7 +77,9 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
               ),
             ],
           ),
-          body: state is LoadingGetExternalOrders
+          body:
+              state is LoadingGetExternalOrders ||
+                  state is LoadingEditExternalOrders
               ? Center(child: CircularProgressIndicator())
               : Padding(
                   padding: const EdgeInsets.symmetric(
@@ -209,7 +220,7 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                 ),
                               ),
                               Text(
-                                "\$${_calculateTotal(state.data.map((e) => e.price).toList())}",
+                                "${_calculateAllOrdersTotal(state.data).toStringAsFixed(0)} L.E",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -249,8 +260,6 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                                         '${state.data.length - index}',
                                                     orderItems:
                                                         state.data[index].order,
-                                                    totalPrice:
-                                                        state.data[index].price,
                                                   ),
                                             ),
                                           );
@@ -273,7 +282,9 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
 
                                             Expanded(
                                               child: Text(
-                                                state.data[index].order,
+                                                state.data[index].order
+                                                    .map((e) => e.name)
+                                                    .join(", "),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w500,
@@ -281,7 +292,7 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                               ),
                                             ),
                                             Text(
-                                              "${state.data[index].price.toString()} L.E",
+                                              "${_calculateOrderTotal(state.data[index].order).toStringAsFixed(0)} L.E",
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.w500,
@@ -324,11 +335,16 @@ class _ExternalOrderPageState extends State<ExternalOrderPage> {
                                         await context
                                             .read<ExternalOrdersCubit>()
                                             .editExternalOrderFunc(
-                                              id: state.data[index].id,
-                                              price: state.data[index].price,
-                                              order: state.data[index].order,
-                                              payment:
-                                                  !state.data[index].payment,
+                                              externalOrdersModel:
+                                                  ExternalOrdersModel(
+                                                    id: state.data[index].id,
+                                                    table: 'table1',
+                                                    order:
+                                                        state.data[index].order,
+                                                    payment: !state
+                                                        .data[index]
+                                                        .payment,
+                                                  ),
                                             );
                                       }
                                     },

@@ -29,16 +29,11 @@ abstract class DashboardRepository {
   Future<List<OutcomesModel>> outComesData();
   Future<void> deleteOutComesData(String id);
 
-  Future<void> addExternalOrders({required int price, required String order});
+  Future<void> addExternalOrders(ExternalOrdersModel externalOrdersModel);
   Future<List<ExternalOrdersModel>> getExternalOrders();
   Future<void> deleteExternalOrder(String id);
   Future<void> clearAllExternalOrders();
   Future<void> clearAllOutComes();
   Future<void> addComments(String comments, String roomId, {String? sessionId});
-  Future<void> editExternalOrders({
-    required String id,
-    required int price,
-    required String order,
-    required bool payment,
-  });
+  Future<void> editExternalOrders(ExternalOrdersModel externalOrdersModel);
 }

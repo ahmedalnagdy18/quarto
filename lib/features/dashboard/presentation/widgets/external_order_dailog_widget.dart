@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/external_order_page.dart';
 
@@ -392,16 +393,26 @@ class _ExternalOrderDialogWidgetState extends State<ExternalOrderDialogWidget> {
               onPressed: _orders.isEmpty
                   ? null
                   : () {
-                      // تغيير طريقة تخزين الطلب
-                      String orderString = '';
+                      final List<ExternalOrderItem> externalItems = [];
+
                       for (var item in _orders) {
-                        // تخزين كل عنصر بالصيغة: "اسم المنتج xالكمية"
-                        orderString += '${item.name} x${item.quantity}\n';
+                        for (int i = 0; i < item.quantity; i++) {
+                          externalItems.add(
+                            ExternalOrderItem(
+                              name: item.name,
+                              price: item.price,
+                            ),
+                          );
+                        }
                       }
 
                       context.read<ExternalOrdersCubit>().addExternalOrderFunc(
-                        price: totalPrice.toInt(),
-                        order: orderString.trim(), // إزالة السطر الأخير الفارغ
+                        externalOrdersModel: ExternalOrdersModel(
+                          id: '',
+                          table: 'table1',
+                          payment: false,
+                          order: externalItems,
+                        ),
                       );
                     },
               child: Text(

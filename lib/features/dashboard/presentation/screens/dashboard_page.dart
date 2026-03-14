@@ -7,6 +7,7 @@ import 'package:quarto/core/common/app_loading_widget.dart';
 import 'package:quarto/core/extentions/app_extentions.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/core/services/export_service.dart';
+import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
@@ -345,8 +346,18 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               BlocBuilder<ExternalOrdersCubit, ExternalOrdersState>(
                 builder: (context, state) {
-                  int calculateTotal(List<int> prices) {
-                    return prices.fold(0, (sum, price) => sum + price);
+                  double calculateAllOrdersTotal(
+                    List<ExternalOrdersModel> orders,
+                  ) {
+                    return orders.fold(
+                      0,
+                      (sum, order) =>
+                          sum +
+                          order.order.fold(
+                            0,
+                            (subSum, item) => subSum + item.price,
+                          ),
+                    );
                   }
 
                   return Column(
@@ -361,7 +372,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         Text("Error", style: AppTexts.largeHeading)
                       else if (state is SuccessGetExternalOrders)
                         Text(
-                          "\$${calculateTotal(state.data.map((e) => e.price).toList())}",
+                          "\$${calculateAllOrdersTotal(state.data).toStringAsFixed(0)}",
                           style: AppTexts.largeHeading.copyWith(
                             color: Colors.green,
                           ),
