@@ -9,10 +9,6 @@ class CafeRepositoryImp implements CafeRepository {
 
   CafeRepositoryImp({required this.supabase});
 
-  // =========================
-  // 🪑 Tables
-  // =========================
-
   @override
   Future<List<CafeTableModel>> getTables() async {
     final response = await supabase
@@ -31,16 +27,40 @@ class CafeRepositoryImp implements CafeRepository {
         .eq('id', tableId);
   }
 
-  // =========================
-  // 🧾 Orders
-  // =========================
-
   @override
   Future<String> addOrder(OrderModel order) async {
+    final orderTypeCandidates = _orderTypeCandidates(order.orderType);
+    PostgrestException? lastConstraintError;
+
+    for (final orderType in orderTypeCandidates) {
+      try {
+        final orderId = await _insertOrder(order, orderType);
+        return orderId;
+      } on PostgrestException catch (error) {
+        if (!_isOrderTypeConstraintError(error) ||
+            orderType != orderTypeCandidates.last) {
+          if (!_isOrderTypeConstraintError(error)) {
+            rethrow;
+          }
+          lastConstraintError = error;
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    if (lastConstraintError != null) {
+      throw lastConstraintError;
+    }
+
+    throw StateError('Unable to add order.');
+  }
+
+  Future<String> _insertOrder(OrderModel order, String orderType) async {
     final response = await supabase
         .from('orders')
         .insert({
-          'order_type': order.orderType,
+          'order_type': orderType,
           'table_id': order.tableId,
           'customer_name': order.customerName,
           'staff_name': order.staffName,
@@ -50,21 +70,38 @@ class CafeRepositoryImp implements CafeRepository {
 
     final orderId = response['id'].toString();
 
-    // ➕ add items
     if (order.items.isNotEmpty) {
-      final items = order.items.map((e) {
-        return {
-          'order_id': orderId,
-          'item_name': e.itemName,
-          'quantity': e.quantity,
-          'price': e.price,
-        };
-      }).toList();
+      final items = order.items
+          .map(
+            (e) => {
+              'order_id': orderId,
+              'item_name': e.itemName,
+              'quantity': e.quantity,
+              'price': e.price,
+            },
+          )
+          .toList();
 
       await supabase.from('order_items').insert(items);
     }
 
     return orderId;
+  }
+
+  List<String> _orderTypeCandidates(String orderType) {
+    final normalized = orderType.trim().toLowerCase();
+
+    if (normalized == 'takeaway' || normalized == 'take_away') {
+      return const ['takeaway'];
+    }
+
+    return [normalized];
+  }
+
+  bool _isOrderTypeConstraintError(PostgrestException error) {
+    return error.code == '23514' &&
+        (error.message.contains('order_type_check') ||
+            error.message.contains('orders'));
   }
 
   @override
@@ -87,10 +124,6 @@ class CafeRepositoryImp implements CafeRepository {
 
     return (response as List).map((e) => OrderModel.fromJson(e)).toList();
   }
-
-  // =========================
-  // 🍔 Order Items
-  // =========================
 
   @override
   Future<void> addOrderItems(List<OrderItemModel> items) async {

@@ -17,13 +17,15 @@ class OrdersCubit extends Cubit<OrdersState> {
     required this.getOrdersByTableUseCase,
   }) : super(OrdersInitial());
 
-  Future<void> addOrder(OrderModel order) async {
+  Future<String> addOrder(OrderModel order) async {
     emit(LoadingAddOrder());
     try {
-      await addOrderUseCase(order: order);
+      final orderId = await addOrderUseCase(order: order);
       emit(SuccessAddOrder());
+      return orderId;
     } catch (e) {
       emit(ErrorAddOrder(message: e.toString()));
+      rethrow;
     }
   }
 

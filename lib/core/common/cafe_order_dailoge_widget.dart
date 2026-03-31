@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
@@ -6,6 +7,7 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/data/model/order_item_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
 import 'package:quarto/features/cafe/presentation/cubits/orders_cubit/orders_cubit.dart';
+import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 
 class CafeOrderDailogeWidget extends StatefulWidget {
@@ -14,8 +16,10 @@ class CafeOrderDailogeWidget extends StatefulWidget {
     required this.orderType,
     this.tableId,
   });
+
   final String orderType;
   final String? tableId;
+
   @override
   State<CafeOrderDailogeWidget> createState() => _RoomOrderDailogeWidgetState();
 }
@@ -36,23 +40,33 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     'Classic latte': 110,
   };
 
-  // Map to store selected items with their quantities
   final Map<String, int> _selectedItems = {};
-
-  // Search functionality
   String _searchQuery = '';
-
-  // Comment controller
   final TextEditingController _commentController = TextEditingController();
-
-  // Loading state
   bool _isLoading = false;
 
-  // Get filtered menu items based on search
+  bool get _isTableOrder => widget.orderType.toLowerCase() == 'table';
+
+  bool get _isStaffOrder => widget.orderType.toLowerCase() == 'staff';
+
+  String get _normalizedOrderType {
+    switch (widget.orderType.toLowerCase()) {
+      case 'table':
+        return 'table';
+      case 'staff':
+        return 'staff';
+      case 'takeaway':
+        return 'takeaway';
+      default:
+        return widget.orderType.toLowerCase();
+    }
+  }
+
   List<MapEntry<String, double>> get _filteredMenuItems {
     if (_searchQuery.isEmpty) {
       return _menuItems.entries.toList();
     }
+
     return _menuItems.entries
         .where(
           (entry) =>
@@ -61,7 +75,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
         .toList();
   }
 
-  // Add item to selected items
   void _addItem(String name, double price) {
     setState(() {
       if (_selectedItems.containsKey(name)) {
@@ -72,7 +85,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     });
   }
 
-  // Remove item from selected items
   void _removeItem(String name) {
     setState(() {
       if (_selectedItems.containsKey(name)) {
@@ -85,7 +97,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     });
   }
 
-  // Calculate total price
   double get _totalPrice {
     double total = 0;
     _selectedItems.forEach((name, quantity) {
@@ -94,9 +105,8 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     return total;
   }
 
-  // Prepare orders list for API
   List<OrderItemModel> _prepareOrders() {
-    List<OrderItemModel> items = [];
+    final items = <OrderItemModel>[];
 
     _selectedItems.forEach((name, quantity) {
       items.add(
@@ -105,7 +115,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
           id: '',
           itemName: name,
           quantity: quantity,
-          price: _menuItems[name]!, // ✅ دي أهم نقطة
+          price: _menuItems[name]!,
         ),
       );
     });
@@ -113,9 +123,18 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     return items;
   }
 
-  // Handle place order
   Future<void> _placeOrder() async {
     if (_selectedItems.isEmpty) return;
+
+    if (_isTableOrder && (widget.tableId == null || widget.tableId!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Table id is missing for this order.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -123,23 +142,28 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
 
     try {
       final cubit = context.read<OrdersCubit>();
-
       final items = _prepareOrders();
 
       final order = OrderModel(
         id: '',
-        orderType: widget.orderType, // غيرها حسب الاستخدام
-        tableId: widget.orderType == "Table" ? widget.tableId : null,
+        orderType: _normalizedOrderType,
+        tableId: _isTableOrder ? widget.tableId : null,
         customerName: null,
-        staffName:
-            widget.orderType == "Staff" && _commentController.text.isNotEmpty
-            ? _commentController.text
+        staffName: _isStaffOrder && _commentController.text.trim().isNotEmpty
+            ? _commentController.text.trim()
             : null,
         orderTime: DateTime.now().toIso8601String(),
         items: items,
       );
 
       await cubit.addOrder(order);
+
+      if (_isTableOrder && mounted) {
+        await context.read<CafeTablesCubit>().updateTableStatus(
+          widget.tableId!,
+          true,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -148,7 +172,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
             backgroundColor: Colors.green,
           ),
         );
-        print(order.toJson());
         Navigator.pop(context);
       }
     } catch (e) {
@@ -180,29 +203,17 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     return AlertDialog(
       alignment: Alignment.center,
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 40,
-        vertical: 24,
-      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       content: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: 15,
-            sigmaY: 15,
-          ),
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Material(
             color: Colors.transparent,
             child: Container(
               width: 900,
-              constraints: const BoxConstraints(
-                maxHeight: 700,
-                minHeight: 500,
-              ),
-              padding: const EdgeInsets.symmetric(
-                vertical: 30,
-                horizontal: 20,
-              ),
+              constraints: const BoxConstraints(maxHeight: 700, minHeight: 500),
+              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
@@ -212,9 +223,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                   ),
                 ],
                 color: Colors.white.withOpacity(0.05),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                ),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -231,10 +240,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  "Menu",
-                                  style: AppTexts.smallHeading,
-                                ),
+                                Text('Menu', style: AppTexts.smallHeading),
                                 const SizedBox(height: 20),
                                 TextFormField(
                                   onChanged: (value) {
@@ -243,7 +249,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                     });
                                   },
                                   decoration: InputDecoration(
-                                    hintText: "Search items",
+                                    hintText: 'Search items',
                                     hintStyle: const TextStyle(
                                       color: Colors.white,
                                     ),
@@ -253,7 +259,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                     ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(20),
-                                      borderSide: BorderSide(
+                                      borderSide: const BorderSide(
                                         color: Colors.white,
                                       ),
                                     ),
@@ -263,9 +269,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                       horizontal: 16,
                                     ),
                                   ),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                  ),
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                                 const SizedBox(height: 20),
                                 Expanded(
@@ -319,7 +323,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                                     ),
                                                     const SizedBox(height: 8),
                                                     Text(
-                                                      "${item.value.toStringAsFixed(0)} EGP",
+                                                      '${item.value.toStringAsFixed(0)} EGP',
                                                       style: AppTexts.meduimBody
                                                           .copyWith(
                                                             color: AppColors
@@ -346,7 +350,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                             ),
                           ),
                         ),
-                        //! part 1
                         const SizedBox(
                           height: double.infinity,
                           child: VerticalDivider(
@@ -355,7 +358,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                             width: 20,
                           ),
                         ),
-                        //! part 2
                         Expanded(
                           flex: 1,
                           child: Padding(
@@ -369,12 +371,12 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "${widget.orderType} Order",
+                                      '${widget.orderType} Order',
                                       style: AppTexts.meduimHeading,
                                     ),
                                     GestureDetector(
                                       onTap: () => Navigator.pop(context),
-                                      child: Icon(
+                                      child: const Icon(
                                         Icons.close,
                                         color: Colors.white,
                                       ),
@@ -383,20 +385,19 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  "Creat a new order for pick-up or walk-in",
+                                  'Creat a new order for pick-up or walk-in',
                                   style: AppTexts.smallBody.copyWith(
                                     color: Colors.grey,
                                     fontSize: 14,
                                   ),
                                 ),
                                 const SizedBox(height: 30),
-                                if (widget.orderType == 'Staff') ...[
-                                  //
+                                if (_isStaffOrder) ...[
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      boxShadow: [
+                                      boxShadow: const [
                                         BoxShadow(
                                           blurRadius: 1,
                                           color: Colors.white10,
@@ -414,13 +415,13 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                       children: [
                                         Row(
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               Icons.comment,
                                               color: Colors.white,
                                             ),
-                                            SizedBox(width: 8),
+                                            const SizedBox(width: 8),
                                             Text(
-                                              "Staff Name",
+                                              'Staff Name',
                                               style: AppTexts.smallHeading
                                                   .copyWith(
                                                     fontWeight: FontWeight.w500,
@@ -433,11 +434,11 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                           controller: _commentController,
                                           maxLines: 3,
                                           minLines: 2,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 14,
                                           ),
-                                          decoration: InputDecoration(
+                                          decoration: const InputDecoration(
                                             hintText: 'Add your Name',
                                             hintStyle: TextStyle(
                                               color: Colors.white,
@@ -449,19 +450,18 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                       ],
                                     ),
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                 ],
-
                                 Text(
-                                  "Order Summary",
+                                  'Order Summary',
                                   style: AppTexts.smallHeading,
                                 ),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 Expanded(
                                   child: _selectedItems.isEmpty
                                       ? Center(
                                           child: Text(
-                                            "No items selected",
+                                            'No items selected',
                                             style: AppTexts.smallBody.copyWith(
                                               color: Colors.grey,
                                             ),
@@ -499,7 +499,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                                               .smallBody,
                                                         ),
                                                         Text(
-                                                          "${price.toStringAsFixed(0)} EGP × $quantity",
+                                                          '${price.toStringAsFixed(0)} EGP x $quantity',
                                                           style: AppTexts
                                                               .smallBody
                                                               .copyWith(
@@ -514,17 +514,17 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                                   Row(
                                                     children: [
                                                       Text(
-                                                        "${totalPrice.toStringAsFixed(0)} EGP",
+                                                        '${totalPrice.toStringAsFixed(0)} EGP',
                                                         style:
                                                             AppTexts.smallBody,
                                                       ),
-                                                      SizedBox(width: 12),
+                                                      const SizedBox(width: 12),
                                                       GestureDetector(
                                                         onTap: () =>
                                                             _removeItem(
                                                               itemName,
                                                             ),
-                                                        child: Icon(
+                                                        child: const Icon(
                                                           Icons
                                                               .remove_circle_outline,
                                                           color: Colors.red,
@@ -547,11 +547,11 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        "Total",
+                                        'Total',
                                         style: AppTexts.meduimBody,
                                       ),
                                       Text(
-                                        "${_totalPrice.toStringAsFixed(0)} EGP",
+                                        '${_totalPrice.toStringAsFixed(0)} EGP',
                                         style: AppTexts.meduimBody,
                                       ),
                                     ],
@@ -566,7 +566,6 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // زر الطلب
                   AddButton(
                     title: _isLoading ? 'Placing Order...' : 'Place Order',
                     onPressed: _selectedItems.isEmpty || _isLoading

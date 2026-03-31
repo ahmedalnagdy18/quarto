@@ -185,7 +185,7 @@ class _CafeScreenState extends State<CafeScreen> {
                         showDialog(
                           context: context,
                           builder: (context) => CafeOrderDailogeWidget(
-                            orderType: "Takeaway",
+                            orderType: "takeaway",
                           ),
                         );
                       },
