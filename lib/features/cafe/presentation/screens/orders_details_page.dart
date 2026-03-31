@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
-import 'package:quarto/features/cafe/presentation/cubits/orders_cubit/orders_cubit.dart';
+import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
+import 'package:quarto/features/cafe/presentation/utils/cafe_order_utils.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
+import 'package:quarto/injection_container.dart';
 
 class OrdersDetailsPage extends StatefulWidget {
   const OrdersDetailsPage({super.key});
@@ -12,10 +13,30 @@ class OrdersDetailsPage extends StatefulWidget {
 }
 
 class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
+  final CafeRepository _cafeRepository = sl<CafeRepository>();
+  List<OrderModel> _orders = const [];
+  bool _isLoading = true;
+
   @override
   void initState() {
-    context.read<OrdersCubit>().getOrders();
     super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final orders = await _cafeRepository.getOrders();
+    final tables = await _cafeRepository.getTables();
+
+    if (mounted) {
+      setState(() {
+        _orders = finalizedCafeOrders(orders, tables);
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -24,14 +45,10 @@ class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Bg image
           SizedBox(
             width: double.infinity,
             height: double.infinity,
-            child: Image.asset(
-              "images/bg.png",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('images/bg.png', fit: BoxFit.cover),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -43,11 +60,8 @@ class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Image.asset(
-                        'images/quarto_logo.png',
-                        scale: 4,
-                      ),
-                      Spacer(),
+                      Image.asset('images/quarto_logo.png', scale: 4),
+                      const Spacer(),
                       ExportButtonsWidget(
                         title: 'Export history',
                         icon: Icons.download,
@@ -55,20 +69,20 @@ class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       InkWell(
                         onTap: () => Navigator.pop(context),
-                        child: Icon(
+                        child: const Icon(
                           Icons.arrow_back,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Recent Café Orders',
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Recent Cafe Orders',
                         style: TextStyle(
                           fontSize: 20,
                           color: Colors.white,
@@ -77,15 +91,13 @@ class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 30),
-                  BlocBuilder<OrdersCubit, OrdersState>(
-                    builder: (context, state) {
-                      if (state is SuccessGetOrders) {
-                        return _buildOrdersTable(state.orders, context);
-                      }
-                      return SizedBox();
-                    },
-                  ),
+                  const SizedBox(height: 30),
+                  if (_isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
+                  else
+                    _buildOrdersTable(_orders),
                 ],
               ),
             ),
@@ -96,10 +108,7 @@ class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
   }
 }
 
-Widget _buildOrdersTable(
-  List<OrderModel> orders,
-  BuildContext context,
-) {
+Widget _buildOrdersTable(List<OrderModel> orders) {
   return SizedBox(
     width: double.infinity,
     child: DataTable(
@@ -107,13 +116,13 @@ Widget _buildOrdersTable(
       dataTextStyle: const TextStyle(color: Colors.white),
       headingTextStyle: const TextStyle(color: Colors.white),
       columns: const [
-        DataColumn(label: Text("#")),
-        DataColumn(label: Text("Date")),
-        DataColumn(label: Text("Table")),
-        DataColumn(label: Text("Table")),
-        DataColumn(label: Text("Payment Method")),
-        DataColumn(label: Text("Total")),
-        DataColumn(label: Text("Details")),
+        DataColumn(label: Text('#')),
+        DataColumn(label: Text('Type')),
+        DataColumn(label: Text('Table')),
+        DataColumn(label: Text('Name')),
+        DataColumn(label: Text('Time')),
+        DataColumn(label: Text('Total')),
+        DataColumn(label: Text('Details')),
       ],
       rows: orders.asMap().entries.map((entry) {
         final index = entry.key;
@@ -121,40 +130,22 @@ Widget _buildOrdersTable(
 
         return DataRow(
           cells: [
-            DataCell(Text("${index + 1}")),
-
-            /// نوع الأوردر
+            DataCell(Text('${index + 1}')),
             DataCell(Text(order.orderType)),
-
-            /// رقم الترابيزة (لو موجود)
-            DataCell(Text(order.tableId?.toString() ?? "-")),
-
-            /// اسم العميل أو الموظف
+            DataCell(Text(order.tableId ?? '-')),
+            DataCell(Text(order.customerName ?? order.staffName ?? '-')),
             DataCell(
-              Text(order.customerName ?? order.staffName ?? "-"),
+              Text(
+                '${formatOrderDate(order.orderTime)} ${formatOrderTime(order.orderTime)}',
+              ),
             ),
-
-            /// الوقت
-            DataCell(Text("order.formattedTime")),
-
-            /// عدد المنتجات
-            DataCell(Text("${order.items.length}")),
-
-            /// إجمالي السعر
-            // DataCell(Text("${"order.totalPrice"} EGP")),
-
-            /// زر التفاصيل
             DataCell(
-              ElevatedButton(
-                onPressed: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (_) => OrderDetailsPage(order: order),
-                  //   ),
-                  // );
-                },
-                child: const Text("View"),
+              Text('${calculateOrderTotal(order).toStringAsFixed(0)} EGP'),
+            ),
+            DataCell(
+              Text(
+                '${order.items.length} items',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],

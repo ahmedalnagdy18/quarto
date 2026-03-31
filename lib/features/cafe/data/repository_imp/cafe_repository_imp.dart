@@ -127,7 +127,16 @@ class CafeRepositoryImp implements CafeRepository {
 
   @override
   Future<void> addOrderItems(List<OrderItemModel> items) async {
-    final data = items.map((e) => e.toJson()).toList();
+    final data = items
+        .map(
+          (e) => {
+            'order_id': e.orderId,
+            'item_name': e.itemName,
+            'quantity': e.quantity,
+            'price': e.price,
+          },
+        )
+        .toList();
 
     await supabase.from('order_items').insert(data);
   }

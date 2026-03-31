@@ -22,6 +22,7 @@ class OrderItemsCubit extends Cubit<OrderItemsState> {
       emit(SuccessAddOrderItems());
     } catch (e) {
       emit(ErrorAddOrderItems(message: e.toString()));
+      rethrow;
     }
   }
 

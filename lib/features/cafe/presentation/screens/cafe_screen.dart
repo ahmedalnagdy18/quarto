@@ -5,13 +5,16 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_button.dart';
 import 'package:quarto/core/common/cafe_order_dailoge_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/features/cafe/data/model/order_model.dart';
+import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/cafe/presentation/screens/orders_details_page.dart';
 import 'package:quarto/features/cafe/presentation/screens/tabel_details_page.dart';
+import 'package:quarto/features/cafe/presentation/utils/cafe_order_utils.dart';
 import 'package:quarto/features/cafe/presentation/widgets/table_card_widget.dart';
-import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/card_widget.dart';
+import 'package:quarto/injection_container.dart';
 
 class CafeScreen extends StatefulWidget {
   const CafeScreen({super.key});
@@ -21,10 +24,85 @@ class CafeScreen extends StatefulWidget {
 }
 
 class _CafeScreenState extends State<CafeScreen> {
+  final CafeRepository _cafeRepository = sl<CafeRepository>();
+  List<OrderModel> _orders = const [];
+  bool _isLoadingOrders = true;
+
   @override
   void initState() {
-    context.read<CafeTablesCubit>().getTables();
     super.initState();
+    _loadCafeData();
+  }
+
+  Future<void> _loadCafeData() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingOrders = true;
+      });
+    }
+
+    await context.read<CafeTablesCubit>().getTables();
+
+    try {
+      final orders = await _cafeRepository.getOrders();
+      if (mounted) {
+        setState(() {
+          _orders = orders;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingOrders = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openGeneralOrderDialog(String orderType) async {
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (context) => CafeOrderDailogeWidget(orderType: orderType),
+    );
+
+    if (changed == true) {
+      await _loadCafeData();
+    }
+  }
+
+  Future<void> _openTableDetails(String tableId) async {
+    final tableState = context.read<CafeTablesCubit>().state;
+    if (tableState is! SuccessGetTables) {
+      return;
+    }
+
+    final table = tableState.tables.firstWhere((table) => table.id == tableId);
+    await Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => TabelDetailsPage(cafeTable: table),
+      ),
+    );
+    await _loadCafeData();
+  }
+
+  Future<void> _openTableOrderDialog(String tableId) async {
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (context) => CafeOrderDailogeWidget(
+        orderType: 'Table',
+        tableId: tableId,
+      ),
+    );
+
+    if (changed == true) {
+      await _loadCafeData();
+    }
+  }
+
+  Future<void> _endTableOrder(String tableId) async {
+    await context.read<CafeTablesCubit>().updateTableStatus(tableId, false);
+    await _loadCafeData();
   }
 
   @override
@@ -41,30 +119,28 @@ class _CafeScreenState extends State<CafeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Image.asset(
-                    'images/quarto_logo.png',
-                    scale: 4,
-                  ),
-                  Spacer(),
+                  Image.asset('images/quarto_logo.png', scale: 4),
+                  const Spacer(),
                   ExportButtonsWidget(
                     title: 'Export rooms',
                     icon: Icons.download,
                     onPressed: () {},
                   ),
-                  SizedBox(width: 20),
+                  const SizedBox(width: 20),
                   ExportButtonsWidget(
                     title: 'Orders',
                     icon: Icons.list,
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      await Navigator.push(
                         context,
                         CupertinoPageRoute(
-                          builder: (context) => OrdersDetailsPage(),
+                          builder: (context) => const OrdersDetailsPage(),
                         ),
                       );
+                      await _loadCafeData();
                     },
                   ),
-                  SizedBox(width: 20),
+                  const SizedBox(width: 20),
                   ExportButtonsWidget(
                     title: 'Outcomes',
                     icon: Icons.wallet,
@@ -72,8 +148,8 @@ class _CafeScreenState extends State<CafeScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Cafe Orders Management',
                 style: TextStyle(
                   fontSize: 20,
@@ -81,15 +157,12 @@ class _CafeScreenState extends State<CafeScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 12),
-              Text(
+              const SizedBox(height: 12),
+              const Text(
                 'Track and manage orders placed by customers seated at cafe .',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white),
               ),
-              SizedBox(height: 26),
+              const SizedBox(height: 26),
               BlocBuilder<CafeTablesCubit, CafeTablesState>(
                 builder: (context, state) {
                   int freeTables = 0;
@@ -103,36 +176,44 @@ class _CafeScreenState extends State<CafeScreen> {
                     occupiedTables = state.tables
                         .where((t) => t.isOccupied)
                         .length;
+                    todayIncome = finalizedCafeOrders(_orders, state.tables)
+                        .fold<double>(
+                          0,
+                          (total, order) => total + calculateOrderTotal(order),
+                        );
                   }
+
                   return Row(
                     children: [
                       Expanded(
                         child: CardWidget(
-                          data: "$freeTables",
+                          data: '$freeTables',
                           title: 'Free tabels',
                           cafeState: state,
                         ),
                       ),
-                      SizedBox(width: 20),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: CardWidget(
-                          data: "$occupiedTables",
+                          data: '$occupiedTables',
                           title: 'Occupied tabels',
                           cafeState: state,
                         ),
                       ),
-                      SizedBox(width: 20),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: CardWidget(
-                          data: '${todayIncome.toStringAsFixed(0)}\$',
+                          data: _isLoadingOrders
+                              ? '0\$'
+                              : '${todayIncome.toStringAsFixed(0)}\$',
                           title: 'income',
                           cafeState: state,
                         ),
                       ),
-                      SizedBox(width: 20),
-                      Expanded(
+                      const SizedBox(width: 20),
+                      const Expanded(
                         child: CardWidget(
-                          data: "20\$",
+                          data: '20\$',
                           title: 'Outcomes',
                         ),
                       ),
@@ -140,8 +221,8 @@ class _CafeScreenState extends State<CafeScreen> {
                   );
                 },
               ),
-              SizedBox(height: 30),
-              Text(
+              const SizedBox(height: 30),
+              const Text(
                 'Cafe orders',
                 style: TextStyle(
                   fontSize: 20,
@@ -149,15 +230,12 @@ class _CafeScreenState extends State<CafeScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 12),
-              Text(
+              const SizedBox(height: 12),
+              const Text(
                 'Track and manage orders placed by customers seated at cafe .',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white),
               ),
-              SizedBox(height: 26),
+              const SizedBox(height: 26),
               Row(
                 children: [
                   Expanded(
@@ -165,36 +243,22 @@ class _CafeScreenState extends State<CafeScreen> {
                       icon: Icons.people_alt_outlined,
                       title: 'Staff Order',
                       subTitle: 'order placed by staff',
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => CafeOrderDailogeWidget(
-                            orderType: "Staff",
-                          ),
-                        );
-                      },
+                      onPressed: () => _openGeneralOrderDialog('Staff'),
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: addOrderWidget(
                       icon: Icons.shopping_cart_outlined,
                       title: 'Takeaway Order',
                       subTitle: 'Create a new order for pickup or walk-in',
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => CafeOrderDailogeWidget(
-                            orderType: "takeaway",
-                          ),
-                        );
-                      },
+                      onPressed: () => _openGeneralOrderDialog('takeaway'),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 30),
-              Text(
+              const SizedBox(height: 30),
+              const Text(
                 'Cafe Tabels',
                 style: TextStyle(
                   fontSize: 20,
@@ -202,57 +266,39 @@ class _CafeScreenState extends State<CafeScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 12),
-              Text(
+              const SizedBox(height: 12),
+              const Text(
                 'Track and manage orders placed by customers seated at cafe .',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white),
               ),
-              SizedBox(height: 26),
-              BlocListener<RoomsCubit, RoomsState>(
-                listener: (context, state) {
+              const SizedBox(height: 26),
+              BlocBuilder<CafeTablesCubit, CafeTablesState>(
+                builder: (context, state) {
                   if (state is SuccessGetTables) {
-                    // context.read<DashboardCubit>().loadDashboardStats();
-                    //todo: add ==============
-                  }
-                },
-                child: BlocBuilder<CafeTablesCubit, CafeTablesState>(
-                  builder: (context, state) {
-                    if (state is SuccessGetTables) {
-                      return Wrap(
-                        spacing: 15,
-                        runSpacing: 15,
-                        children: List.generate(
-                          state.tables.length,
-                          (index) => GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(
-                                  builder: (context) => TabelDetailsPage(
-                                    cafeTable: state.tables[index],
-                                  ),
-                                ),
-                              );
-                            },
-                            child: TableCardWidget(
-                              table: state.tables[index],
-                            ),
-                          ),
+                    return Wrap(
+                      spacing: 15,
+                      runSpacing: 15,
+                      children: List.generate(
+                        state.tables.length,
+                        (index) => TableCardWidget(
+                          table: state.tables[index],
+                          onAddOrder: () =>
+                              _openTableOrderDialog(state.tables[index].id),
+                          onManage: () =>
+                              _openTableDetails(state.tables[index].id),
+                          onEnd: () => _endTableOrder(state.tables[index].id),
                         ),
-                      );
-                    }
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.yellowColor,
                       ),
                     );
-                  },
-                ),
+                  }
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.yellowColor,
+                    ),
+                  );
+                },
               ),
-              SizedBox(height: 100),
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -268,7 +314,7 @@ Widget addOrderWidget({
   required void Function() onPressed,
 }) {
   return Container(
-    padding: EdgeInsets.all(8),
+    padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
       color: AppColors.blueColor,
       borderRadius: BorderRadius.circular(12),

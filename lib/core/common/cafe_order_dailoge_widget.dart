@@ -6,6 +6,7 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/data/model/order_item_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
+import 'package:quarto/features/cafe/presentation/cubits/order_items_cubit/order_items_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/orders_cubit/orders_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
@@ -15,10 +16,12 @@ class CafeOrderDailogeWidget extends StatefulWidget {
     super.key,
     required this.orderType,
     this.tableId,
+    this.existingOrderId,
   });
 
   final String orderType;
   final String? tableId;
+  final String? existingOrderId;
 
   @override
   State<CafeOrderDailogeWidget> createState() => _RoomOrderDailogeWidgetState();
@@ -49,6 +52,9 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
 
   bool get _isStaffOrder => widget.orderType.toLowerCase() == 'staff';
 
+  bool get _isUpdatingExistingOrder =>
+      widget.existingOrderId != null && widget.existingOrderId!.isNotEmpty;
+
   String get _normalizedOrderType {
     switch (widget.orderType.toLowerCase()) {
       case 'table':
@@ -77,11 +83,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
 
   void _addItem(String name, double price) {
     setState(() {
-      if (_selectedItems.containsKey(name)) {
-        _selectedItems[name] = _selectedItems[name]! + 1;
-      } else {
-        _selectedItems[name] = 1;
-      }
+      _selectedItems.update(name, (value) => value + 1, ifAbsent: () => 1);
     });
   }
 
@@ -105,13 +107,13 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     return total;
   }
 
-  List<OrderItemModel> _prepareOrders() {
+  List<OrderItemModel> _prepareOrders({String orderId = ''}) {
     final items = <OrderItemModel>[];
 
     _selectedItems.forEach((name, quantity) {
       items.add(
         OrderItemModel(
-          orderId: '',
+          orderId: orderId,
           id: '',
           itemName: name,
           quantity: quantity,
@@ -141,38 +143,44 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
     });
 
     try {
-      final cubit = context.read<OrdersCubit>();
-      final items = _prepareOrders();
-
-      final order = OrderModel(
-        id: '',
-        orderType: _normalizedOrderType,
-        tableId: _isTableOrder ? widget.tableId : null,
-        customerName: null,
-        staffName: _isStaffOrder && _commentController.text.trim().isNotEmpty
-            ? _commentController.text.trim()
-            : null,
-        orderTime: DateTime.now().toIso8601String(),
-        items: items,
-      );
-
-      await cubit.addOrder(order);
-
-      if (_isTableOrder && mounted) {
-        await context.read<CafeTablesCubit>().updateTableStatus(
-          widget.tableId!,
-          true,
+      if (_isUpdatingExistingOrder) {
+        final items = _prepareOrders(orderId: widget.existingOrderId!);
+        await context.read<OrderItemsCubit>().addOrderItems(items);
+      } else {
+        final order = OrderModel(
+          id: '',
+          orderType: _normalizedOrderType,
+          tableId: _isTableOrder ? widget.tableId : null,
+          customerName: null,
+          staffName: _isStaffOrder && _commentController.text.trim().isNotEmpty
+              ? _commentController.text.trim()
+              : null,
+          orderTime: DateTime.now().toIso8601String(),
+          items: _prepareOrders(),
         );
+
+        await context.read<OrdersCubit>().addOrder(order);
+
+        if (_isTableOrder && mounted) {
+          await context.read<CafeTablesCubit>().updateTableStatus(
+            widget.tableId!,
+            true,
+          );
+        }
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order placed successfully!'),
+          SnackBar(
+            content: Text(
+              _isUpdatingExistingOrder
+                  ? 'Order updated successfully!'
+                  : 'Order placed successfully!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -385,14 +393,17 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Creat a new order for pick-up or walk-in',
+                                  _isUpdatingExistingOrder
+                                      ? 'Add more items to the current order'
+                                      : 'Creat a new order for pick-up or walk-in',
                                   style: AppTexts.smallBody.copyWith(
                                     color: Colors.grey,
                                     fontSize: 14,
                                   ),
                                 ),
                                 const SizedBox(height: 30),
-                                if (_isStaffOrder) ...[
+                                if (_isStaffOrder &&
+                                    !_isUpdatingExistingOrder) ...[
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(16),
@@ -546,10 +557,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        'Total',
-                                        style: AppTexts.meduimBody,
-                                      ),
+                                      Text('Total', style: AppTexts.meduimBody),
                                       Text(
                                         '${_totalPrice.toStringAsFixed(0)} EGP',
                                         style: AppTexts.meduimBody,
@@ -567,7 +575,11 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                   ),
                   const SizedBox(height: 20),
                   AddButton(
-                    title: _isLoading ? 'Placing Order...' : 'Place Order',
+                    title: _isLoading
+                        ? (_isUpdatingExistingOrder
+                              ? 'Updating Order...'
+                              : 'Placing Order...')
+                        : 'Place Order',
                     onPressed: _selectedItems.isEmpty || _isLoading
                         ? null
                         : _placeOrder,
