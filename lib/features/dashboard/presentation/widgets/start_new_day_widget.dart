@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:quarto/core/colors/app_colors.dart';
-import 'package:quarto/features/dashboard/presentation/screens/dashboard_page.dart';
 
 class StartNewDayWidget extends StatelessWidget {
   const StartNewDayWidget({super.key});
@@ -56,11 +55,11 @@ class StartNewDayWidget extends StatelessWidget {
             Navigator.pop(context);
 
             // Show the processing dialog
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => StartNewDayDialog(parentContext: context),
-            );
+            // showDialog(
+            //   context: context,
+            //   barrierDismissible: false,
+            //   builder: (context) => StartNewDayDialog(parentContext: context),
+            // );
           },
           child: const Text(
             'Start New Day',

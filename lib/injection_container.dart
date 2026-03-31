@@ -1,4 +1,13 @@
 import 'package:get_it/get_it.dart';
+import 'package:quarto/features/cafe/data/repository_imp/cafe_repository_imp.dart';
+import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
+import 'package:quarto/features/cafe/domain/usecases/add_order_item_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/add_order_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/get_order_by_table_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/get_order_item_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/get_order_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/get_tabels_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/update_tabels_stutes_usecase.dart';
 import 'package:quarto/features/dashboard/data/repository_imp/dashboard_repository_imp.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_comment_usecase.dart';
@@ -30,6 +39,10 @@ Future<void> init() async {
   // 2. Repository
   sl.registerLazySingleton<DashboardRepository>(
     () => DashboardRepositoryImp(supabase: sl()),
+  );
+
+  sl.registerLazySingleton<CafeRepository>(
+    () => CafeRepositoryImp(supabase: sl()),
   );
 
   // 3. Usecases
@@ -87,5 +100,28 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<EditExternalOrderUsecase>(
     () => EditExternalOrderUsecase(repository: sl()),
+  );
+  //cafe
+
+  sl.registerLazySingleton<AddOrderItemsUseCase>(
+    () => AddOrderItemsUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<AddOrderUseCase>(
+    () => AddOrderUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<GetOrdersByTableUseCase>(
+    () => GetOrdersByTableUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<GetOrderItemsUseCase>(
+    () => GetOrderItemsUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<GetOrdersUseCase>(
+    () => GetOrdersUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<GetTablesUseCase>(
+    () => GetTablesUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<UpdateTableStatusUseCase>(
+    () => UpdateTableStatusUseCase(repository: sl()),
   );
 }

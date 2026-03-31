@@ -181,7 +181,7 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
     super.initState();
     _loadExistingOrders();
     // ⭐ تحميل الكومنت الحالي
-    _currentComment = widget.sessionHistory.comments;
+    // _currentComment = widget.sessionHistory.comments;
   }
 
   void _loadExistingOrders() {

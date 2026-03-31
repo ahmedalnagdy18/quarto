@@ -43,4 +43,8 @@ class AppColors {
 
   //buttons
   static Color primaryBlue = const Color(0xFF3B82F6); // bright blue
+
+  // main colors
+  static Color yellowColor = const Color(0xFFffc901);
+  static Color blueColor = const Color(0xFF191bdf);
 }

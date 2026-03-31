@@ -592,36 +592,19 @@ class DashboardRepositoryImp implements DashboardRepository {
     try {
       if (comments.isEmpty) return;
 
-      // إذا عندك sessionId محدد
-      if (sessionId != null && sessionId.isNotEmpty) {
-        await supabase
-            .from('session_history')
-            .update({
-              'comments': comments,
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('id', sessionId);
+      String? targetSessionId = sessionId;
 
-        //    print("✅ Added comment to session: $sessionId");
-      } else {
+      // 1. تحديد الـ sessionId المستهدف
+      if (targetSessionId == null || targetSessionId.isEmpty) {
         // البحث عن آخر جلسة نشطة
         final activeSession = await _getActiveSession(roomId);
-
         if (activeSession != null) {
-          await supabase
-              .from('session_history')
-              .update({
-                'comments': comments,
-                'updated_at': DateTime.now().toIso8601String(),
-              })
-              .eq('id', activeSession['id']);
-
-          //   print("✅ Added comment to active session: $roomId");
+          targetSessionId = activeSession['id'] as String?;
         } else {
           // البحث عن آخر جلسة منتهية
           final lastSession = await supabase
               .from('session_history')
-              .select()
+              .select('id')
               .eq('room_id', roomId)
               .not('end_time', 'is', null)
               .order('end_time', ascending: false)
@@ -629,22 +612,52 @@ class DashboardRepositoryImp implements DashboardRepository {
               .maybeSingle();
 
           if (lastSession != null) {
-            await supabase
-                .from('session_history')
-                .update({
-                  'comments': comments,
-                  'updated_at': DateTime.now().toIso8601String(),
-                })
-                .eq('id', lastSession['id']);
-
-            // print("✅ Added comment to last session: $roomId");
-          } else {
-            //   print("⚠️ No sessions found for room: $roomId");
+            targetSessionId = lastSession['id'] as String?;
           }
         }
       }
+
+      // إذا لم يتم العثور على جلسة، نخرج من الدالة
+      if (targetSessionId == null || targetSessionId.isEmpty) {
+        // print("⚠️ No sessions found for room: $roomId");
+        return;
+      }
+
+      // 2. جلب السجل الحالي لجلب قائمة التعليقات الموجودة
+      final currentSession = await supabase
+          .from('session_history')
+          .select('comments')
+          .eq('id', targetSessionId)
+          .maybeSingle();
+
+      List<dynamic> currentComments = [];
+      if (currentSession != null && currentSession['comments'] != null) {
+        // التأكد من أن الحقل هو عبارة عن قائمة، وإذا كان نصًا، نحوله لقائمة
+        var commentsData = currentSession['comments'];
+        if (commentsData is List) {
+          currentComments = List.from(commentsData);
+        } else if (commentsData is String) {
+          // إذا كان الحقل نصًا (من تحديث سابق)، نضعه في قائمة جديدة
+          currentComments = [commentsData];
+        }
+        // إذا كان null أو نوع آخر، نبدأ بقائمة فارغة
+      }
+
+      // 3. إضافة التعليق الجديد إلى القائمة
+      currentComments.add(comments);
+
+      // 4. تحديث الحقل بالقائمة الجديدة
+      await supabase
+          .from('session_history')
+          .update({
+            'comments': currentComments, // <-- نرسل القائمة وليس النص
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', targetSessionId);
+
+      // print("✅ Added comment to session: $targetSessionId");
     } catch (e) {
-      //  print("❌ Error adding comment: $e");
+      // print("❌ Error adding comment: $e");
       rethrow;
     }
   }

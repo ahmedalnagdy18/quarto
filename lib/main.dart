@@ -2,12 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/consts/app_const.dart';
+import 'package:quarto/features/cafe/presentation/cubits/order_items_cubit/order_items_cubit.dart';
+import 'package:quarto/features/cafe/presentation/cubits/orders_cubit/orders_cubit.dart';
+import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
-import 'package:quarto/features/dashboard/presentation/cubits/external_order/external_orders_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
-import 'package:quarto/features/dashboard/presentation/screens/dashboard_page.dart';
+import 'package:quarto/features/dashboard/presentation/screens/main_app_page.dart';
 import 'package:quarto/injection_container.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -70,15 +72,6 @@ class MyApp extends StatelessWidget {
           ),
         ),
         BlocProvider(
-          create: (context) => ExternalOrdersCubit(
-            addExternalOrderUsecase: sl(),
-            getExternalOrdersUsecase: sl(),
-            deleteExternalOrder: sl(),
-            clearAllExternalOrdersUsecase: sl(),
-            editExternalOrderUsecase: sl(),
-          ),
-        ),
-        BlocProvider(
           create: (context) => OutcomesCubit(
             addOutcomeUsecase: sl(),
             getOutcomesUsecase: sl(),
@@ -95,10 +88,29 @@ class MyApp extends StatelessWidget {
             startSessionUsecase: sl(),
           ),
         ),
+        BlocProvider(
+          create: (context) => CafeTablesCubit(
+            getTablesUseCase: sl(),
+            updateTableStatusUseCase: sl(),
+          ),
+        ),
+        BlocProvider(
+          create: (context) => OrdersCubit(
+            addOrderUseCase: sl(),
+            getOrdersByTableUseCase: sl(),
+            getOrdersUseCase: sl(),
+          ),
+        ),
+        BlocProvider(
+          create: (context) => OrderItemsCubit(
+            addOrderItemsUseCase: sl(),
+            getOrderItemsUseCase: sl(),
+          ),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: const DashboardPage(),
+        home: const MainAppPage(),
       ),
     );
   }

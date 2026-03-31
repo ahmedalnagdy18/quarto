@@ -34,6 +34,7 @@ class SessionHistoryCubit extends Cubit<SessionHistoryState> {
     try {
       await addCommentUsecase(comments, roomId, sessionId: sessionId);
       emit(SuccessAddComment(comment: comments));
+      await loadRoomHistory(roomId);
     } catch (e) {
       emit(ErrorAddComment(e.toString()));
     }

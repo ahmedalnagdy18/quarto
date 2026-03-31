@@ -88,9 +88,9 @@ class Room {
   String get roomTypeDescription {
     if (name.toLowerCase().contains('room 8') ||
         name.toLowerCase().contains('room8')) {
-      return "Room 8 (Special)";
+      return "Special";
     }
-    return isVip ? "VIP Room" : "Standard Room";
+    return isVip ? "VIP" : "Standard";
   }
 
   // Get display name for PS type

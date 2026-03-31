@@ -245,22 +245,22 @@ class _SessionTypeDialogState extends State<SessionTypeDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                isSelectionComplete ? AppColors.primaryBlue : Colors.grey,
+            backgroundColor: isSelectionComplete
+                ? AppColors.primaryBlue
+                : Colors.grey,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          onPressed:
-              isSelectionComplete
-                  ? () {
-                    Navigator.pop(context, {
-                      'psType': _selectedPsType,
-                      'isMulti': _isMulti,
-                      'hourlyRate': price,
-                    });
-                  }
-                  : null,
+          onPressed: isSelectionComplete
+              ? () {
+                  Navigator.pop(context, {
+                    'psType': _selectedPsType,
+                    'isMulti': _isMulti,
+                    'hourlyRate': price,
+                  });
+                }
+              : null,
           child: const Text(
             'Start Session',
             style: TextStyle(color: Colors.white),
@@ -281,10 +281,9 @@ class _SessionTypeDialogState extends State<SessionTypeDialog> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? AppColors.primaryBlue.withOpacity(0.2)
-                  : AppColors.bgCardLight,
+          color: isSelected
+              ? AppColors.primaryBlue.withOpacity(0.2)
+              : AppColors.bgCardLight,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? AppColors.primaryBlue : Colors.transparent,

@@ -3,7 +3,7 @@ import 'package:quarto/features/dashboard/data/model/room_model.dart';
 
 class SessionHistory {
   final String id;
-  final String? comments;
+  final List? comments;
   final String roomId;
   final DateTime startTime;
   final DateTime? endTime;
@@ -43,9 +43,24 @@ class SessionHistory {
       return [];
     }
 
+    List? parseComments(dynamic value) {
+      if (value == null) return [];
+
+      if (value is List) {
+        return value; // ✅ سيبها زي ما هي
+      }
+
+      // لو جاي String (حالة شاذة من الباك)
+      if (value is String) {
+        return [value];
+      }
+
+      return [];
+    }
+
     return SessionHistory(
       id: json['id'].toString(),
-      comments: json['comments'].toString(),
+      comments: parseComments(json['comments']),
       roomId: json['room_id'].toString(),
       startTime: parseTime(json['start_time']),
       endTime: json['end_time'] != null ? parseTime(json['end_time']) : null,
