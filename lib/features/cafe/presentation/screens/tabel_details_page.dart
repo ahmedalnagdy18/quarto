@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/common/cafe_order_dailoge_widget.dart';
 import 'package:quarto/core/common/vip_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/data/model/cafe_tabels_model.dart';
@@ -58,15 +59,13 @@ class _TabelDetailsPageState extends State<TabelDetailsPage> {
                         child: AddButton(
                           title: "Add order",
                           onPressed: () {
-                            // showDialog(
-                            //   context: context,
-                            //   builder: (context) {
-                            //     return RoomOrderDailogeWidget(
-                            //       roomId: widget.room.id,
-                            //       sessionId: activeSession?.id,
-                            //     );
-                            //   },
-                            // );
+                            showDialog(
+                              context: context,
+                              builder: (context) => CafeOrderDailogeWidget(
+                                orderType: "Table",
+                                tableId: widget.cafeTable.id,
+                              ),
+                            );
                           },
                         ),
                       ),

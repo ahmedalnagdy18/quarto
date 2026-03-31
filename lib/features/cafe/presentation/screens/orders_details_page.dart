@@ -141,7 +141,7 @@ Widget _buildOrdersTable(
             DataCell(Text("${order.items.length}")),
 
             /// إجمالي السعر
-            DataCell(Text("${"order.totalPrice"} EGP")),
+            // DataCell(Text("${"order.totalPrice"} EGP")),
 
             /// زر التفاصيل
             DataCell(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_button.dart';
+import 'package:quarto/core/common/cafe_order_dailoge_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/cafe/presentation/screens/orders_details_page.dart';
@@ -164,7 +165,14 @@ class _CafeScreenState extends State<CafeScreen> {
                       icon: Icons.people_alt_outlined,
                       title: 'Staff Order',
                       subTitle: 'order placed by staff',
-                      onPressed: () {},
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => CafeOrderDailogeWidget(
+                            orderType: "Staff",
+                          ),
+                        );
+                      },
                     ),
                   ),
                   SizedBox(width: 12),
@@ -173,7 +181,14 @@ class _CafeScreenState extends State<CafeScreen> {
                       icon: Icons.shopping_cart_outlined,
                       title: 'Takeaway Order',
                       subTitle: 'Create a new order for pickup or walk-in',
-                      onPressed: () {},
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => CafeOrderDailogeWidget(
+                            orderType: "Takeaway",
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
