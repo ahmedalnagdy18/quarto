@@ -5,6 +5,7 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/core/common/app_button.dart';
 import 'package:quarto/core/common/cafe_order_dailoge_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
+import 'package:quarto/features/cafe/data/model/cafe_tabels_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
 import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
@@ -60,6 +61,16 @@ class _CafeScreenState extends State<CafeScreen> {
     }
   }
 
+  void _showMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _openGeneralOrderDialog(String orderType) async {
     final changed = await showDialog<bool>(
       context: context,
@@ -104,6 +115,55 @@ class _CafeScreenState extends State<CafeScreen> {
   Future<void> _endTableOrder(String tableId) async {
     await context.read<CafeTablesCubit>().updateTableStatus(tableId, false);
     await _loadCafeData();
+  }
+
+  Future<void> _moveTableOrder(CafeTableModel sourceTable) async {
+    final tableState = context.read<CafeTablesCubit>().state;
+    if (tableState is! SuccessGetTables) {
+      return;
+    }
+
+    final activeOrder = latestOrderForTable(sourceTable.id, _orders);
+    if (activeOrder == null) {
+      _showMessage('No active order found for this table.');
+      return;
+    }
+
+    final availableTables = tableState.tables
+        .where((table) => !table.isOccupied && table.id != sourceTable.id)
+        .toList();
+
+    if (availableTables.isEmpty) {
+      _showMessage('No available tables to move this session.');
+      return;
+    }
+
+    final targetTable = await showDialog<CafeTableModel>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => _MoveTableDialog(
+        sourceTable: sourceTable,
+        availableTables: availableTables,
+      ),
+    );
+
+    if (targetTable == null) {
+      return;
+    }
+
+    try {
+      await _cafeRepository.moveTableOrder(
+        orderId: activeOrder.id,
+        fromTableId: sourceTable.id,
+        toTableId: targetTable.id,
+      );
+      await _loadCafeData();
+      _showMessage(
+        '${sourceTable.tableName} moved to ${targetTable.tableName}.',
+      );
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   double? totalRevenue;
@@ -298,6 +358,7 @@ class _CafeScreenState extends State<CafeScreen> {
                               _openTableOrderDialog(state.tables[index].id),
                           onManage: () =>
                               _openTableDetails(state.tables[index].id),
+                          onMove: () => _moveTableOrder(state.tables[index]),
                           onEnd: () => _endTableOrder(state.tables[index].id),
                         ),
                       ),
@@ -313,6 +374,199 @@ class _CafeScreenState extends State<CafeScreen> {
               const SizedBox(height: 100),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoveTableDialog extends StatefulWidget {
+  const _MoveTableDialog({
+    required this.sourceTable,
+    required this.availableTables,
+  });
+
+  final CafeTableModel sourceTable;
+  final List<CafeTableModel> availableTables;
+
+  @override
+  State<_MoveTableDialog> createState() => _MoveTableDialogState();
+}
+
+class _MoveTableDialogState extends State<_MoveTableDialog> {
+  String? _selectedTableId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 120, vertical: 60),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 840),
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: const Color(0xFF11133E),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.blueColor.withValues(alpha: 0.18),
+              blurRadius: 40,
+              spreadRadius: 8,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Move Session',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Transfer the current session from ${widget.sourceTable.tableName} to a different table.',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Choose between available tables',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (widget.availableTables.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: const Text(
+                  'There are no free tables available right now.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              )
+            else
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: widget.availableTables.map((table) {
+                  final isSelected = _selectedTableId == table.id;
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedTableId = table.id;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 226,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.blueColor.withValues(alpha: 0.28)
+                            : Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.yellowColor
+                              : Colors.white24,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.table_restaurant_outlined,
+                            color: isSelected
+                                ? AppColors.yellowColor
+                                : Colors.white70,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              table.tableName,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 28),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _selectedTableId == null
+                    ? null
+                    : () {
+                        final selectedTable = widget.availableTables.firstWhere(
+                          (table) => table.id == _selectedTableId,
+                        );
+                        Navigator.pop(context, selectedTable);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.blueColor,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.white12,
+                  disabledForegroundColor: Colors.white38,
+                  side: BorderSide(color: AppColors.yellowColor, width: 3),
+                  shape: ContinuousRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                ),
+                icon: const Icon(Icons.move_down_outlined, size: 18),
+                label: const Text(
+                  'Move',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

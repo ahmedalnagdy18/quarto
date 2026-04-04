@@ -29,6 +29,49 @@ class CafeRepositoryImp implements CafeRepository {
   }
 
   @override
+  Future<void> moveTableOrder({
+    required String orderId,
+    required String fromTableId,
+    required String toTableId,
+  }) async {
+    final targetTable = await supabase
+        .from('cafe_tables')
+        .select('is_occupied')
+        .eq('id', toTableId)
+        .maybeSingle();
+
+    if (targetTable == null) {
+      throw StateError('Target table not found.');
+    }
+
+    if (targetTable['is_occupied'] == true) {
+      throw StateError('Target table is already occupied.');
+    }
+
+    final movedOrder = await supabase
+        .from('orders')
+        .update({'table_id': toTableId})
+        .eq('id', orderId)
+        .eq('table_id', fromTableId)
+        .select('id')
+        .maybeSingle();
+
+    if (movedOrder == null) {
+      throw StateError('Open order not found for this table.');
+    }
+
+    await supabase
+        .from('cafe_tables')
+        .update({'is_occupied': false})
+        .eq('id', fromTableId);
+
+    await supabase
+        .from('cafe_tables')
+        .update({'is_occupied': true})
+        .eq('id', toTableId);
+  }
+
+  @override
   Future<String> addOrder(OrderModel order) async {
     final orderTypeCandidates = _orderTypeCandidates(order.orderType);
     PostgrestException? lastConstraintError;
@@ -161,7 +204,6 @@ class CafeRepositoryImp implements CafeRepository {
         'price': items.price,
       });
     } catch (e) {
-      // Handle error appropriately
       throw Exception('Failed to add cafe outcome: $e');
     }
   }
@@ -170,11 +212,8 @@ class CafeRepositoryImp implements CafeRepository {
   Future<List<CafeOutcomesModel>> getCafeOutcomesItems() async {
     final response = await supabase
         .from('cafe_outcomes')
-        .select() // This selects ALL columns
-        .order(
-          'id',
-          ascending: false,
-        ); // Or don't order if you don't have created_at
+        .select()
+        .order('id', ascending: false);
 
     return (response as List)
         .map((json) => CafeOutcomesModel.fromJson(json))

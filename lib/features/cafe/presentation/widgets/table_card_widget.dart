@@ -9,12 +9,14 @@ class TableCardWidget extends StatelessWidget {
     required this.table,
     required this.onAddOrder,
     required this.onManage,
+    required this.onMove,
     required this.onEnd,
   });
 
   final CafeTableModel table;
   final VoidCallback onAddOrder;
   final VoidCallback onManage;
+  final VoidCallback onMove;
   final VoidCallback onEnd;
 
   @override
@@ -87,7 +89,7 @@ class TableCardWidget extends StatelessWidget {
                       buttonTitle: 'Move',
                       icon: Icons.move_down_outlined,
                       width: 1,
-                      onPressed: () {},
+                      onPressed: onMove,
                     ),
                   ],
                 )
