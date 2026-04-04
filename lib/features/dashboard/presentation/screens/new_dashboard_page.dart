@@ -5,6 +5,7 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/room_details_page.dart';
+import 'package:quarto/features/dashboard/presentation/screens/rooms_outcomes_page.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/card_widget.dart';
 
@@ -23,6 +24,7 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
     super.initState();
   }
 
+  double? totalRevenue;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +53,16 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                   ExportButtonsWidget(
                     title: 'Outcomes',
                     icon: Icons.wallet,
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) => RoomsOutcomesPage(
+                            totalRevenue: totalRevenue ?? 0,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -83,6 +94,7 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                     freeRooms = state.totalFreeRooms;
                     occupiedRooms = state.totalOccupiedRooms;
                     todayIncome = state.todayIncome;
+                    totalRevenue = todayIncome;
                   }
                   return Row(
                     children: [

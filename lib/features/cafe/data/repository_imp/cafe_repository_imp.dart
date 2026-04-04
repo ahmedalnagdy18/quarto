@@ -1,3 +1,4 @@
+import 'package:quarto/features/cafe/data/model/cafe_outcomes_model.dart';
 import 'package:quarto/features/cafe/data/model/cafe_tabels_model.dart';
 import 'package:quarto/features/cafe/data/model/order_item_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
@@ -149,5 +150,34 @@ class CafeRepositoryImp implements CafeRepository {
         .eq('order_id', orderId);
 
     return (response as List).map((e) => OrderItemModel.fromJson(e)).toList();
+  }
+
+  @override
+  Future<void> addCafeOutcomesItems(CafeOutcomesModel items) async {
+    try {
+      await supabase.from('cafe_outcomes').insert({
+        'material': items.material,
+        'quantity': items.quantity,
+        'price': items.price,
+      });
+    } catch (e) {
+      // Handle error appropriately
+      throw Exception('Failed to add cafe outcome: $e');
+    }
+  }
+
+  @override
+  Future<List<CafeOutcomesModel>> getCafeOutcomesItems() async {
+    final response = await supabase
+        .from('cafe_outcomes')
+        .select() // This selects ALL columns
+        .order(
+          'id',
+          ascending: false,
+        ); // Or don't order if you don't have created_at
+
+    return (response as List)
+        .map((json) => CafeOutcomesModel.fromJson(json))
+        .toList();
   }
 }

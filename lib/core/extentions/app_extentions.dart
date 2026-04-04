@@ -59,3 +59,8 @@ class TimeFormatter {
     return "$hour:$minute $period";
   }
 }
+
+String formatOrderId(String id) {
+  final shortId = id.length > 5 ? id.substring(id.length - 5) : id;
+  return "TRX-${shortId.padLeft(5, '0')}";
+}

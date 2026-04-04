@@ -1,32 +1,25 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:quarto/features/dashboard/data/model/outcomes_model.dart';
-import 'package:quarto/features/dashboard/domain/usecases/add_outcome_usecase.dart';
-import 'package:quarto/features/dashboard/domain/usecases/clear_all_outcomes_usecase.dart';
-import 'package:quarto/features/dashboard/domain/usecases/delete_outcome_usecase.dart';
-import 'package:quarto/features/dashboard/domain/usecases/get_outcomes_usecase.dart';
+import 'package:quarto/features/dashboard/data/model/room_outcomes_model.dart';
+import 'package:quarto/features/dashboard/domain/usecases/add_room_outcome_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/get_room_outcomes_usecase.dart';
 
 part 'outcomes_state.dart';
 
-class OutcomesCubit extends Cubit<OutcomesState> {
-  final AddOutcomeUsecase addOutcomeUsecase;
-  final GetOutcomesUsecase getOutcomesUsecase;
-  final DeleteOutcomeUsecase deleteOutcomeUsecase;
-  final ClearAllOutcomesUsecase clearAllOutcomesUsecase;
-  OutcomesCubit({
-    required this.addOutcomeUsecase,
-    required this.getOutcomesUsecase,
-    required this.deleteOutcomeUsecase,
-    required this.clearAllOutcomesUsecase,
+class RoomOutcomesCubit extends Cubit<RoomOutcomesState> {
+  final AddRoomOutcomeUsecase addRoomOutcomeUsecase;
+  final GetRoomOutcomesUsecase getRoomOutcomesUsecase;
+  RoomOutcomesCubit({
+    required this.addRoomOutcomeUsecase,
+    required this.getRoomOutcomesUsecase,
   }) : super(OutcomesInitial());
 
-  Future<void> addOutcomesFunc({
-    required int price,
-    required String note,
+  Future<void> addRoomOutcomesFunc({
+    required RoomOutcomesModel items,
   }) async {
     emit(LoadingAddOutcomes());
     try {
-      await addOutcomeUsecase(note: note, price: price);
+      await addRoomOutcomeUsecase(items: items);
       emit(
         SuccessAddOutcomes(),
       );
@@ -35,38 +28,15 @@ class OutcomesCubit extends Cubit<OutcomesState> {
     }
   }
 
-  Future<void> getOutcomes() async {
+  Future<void> getRoomOutcomes() async {
     emit(LoadingGetOutcomes());
     try {
-      final data = await getOutcomesUsecase();
+      final data = await getRoomOutcomesUsecase();
       emit(
         SuccessGetOutcomes(data: data),
       );
     } catch (e) {
       emit(ErrorGetOutcomes(message: e.toString()));
-    }
-  }
-
-  Future<void> deleteOutcome(String id) async {
-    emit(LoadingDeleteOutcome());
-    try {
-      await deleteOutcomeUsecase(id);
-
-      emit(SuccessDeleteOutcome());
-    } catch (e) {
-      emit(ErrorDeleteOutcome(message: e.toString()));
-    }
-  }
-
-  Future<void> clearAllOutComesOrders() async {
-    emit(LoadingClearAllOutcomes());
-    try {
-      await clearAllOutcomesUsecase();
-      emit(
-        SuccessClearAllOutcomes(),
-      );
-    } catch (e) {
-      emit(ErrorClearAllOutcomes(message: e.toString()));
     }
   }
 }

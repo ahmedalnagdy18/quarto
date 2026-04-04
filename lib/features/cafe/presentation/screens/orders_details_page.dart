@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:quarto/features/cafe/data/model/cafe_tabels_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
 import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
+import 'package:quarto/features/cafe/presentation/screens/orders_item_details.dart';
 import 'package:quarto/features/cafe/presentation/utils/cafe_order_utils.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 import 'package:quarto/injection_container.dart';
@@ -352,14 +354,27 @@ class _OrdersStyledTableState extends State<_OrdersStyledTable> {
                                   '${calculateOrderTotal(order).toStringAsFixed(0)} EGP',
                                 ),
                               ),
-                              const _BodyCell(
+                              _BodyCell(
                                 flex: 1,
                                 child: Align(
                                   alignment: Alignment.center,
-                                  child: Icon(
-                                    Icons.remove_red_eye_outlined,
-                                    color: Color(0xFFFFC400),
-                                    size: 20,
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        CupertinoPageRoute(
+                                          builder: (context) =>
+                                              OrdersItemDetails(
+                                                order: order,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    child: Icon(
+                                      Icons.remove_red_eye_outlined,
+                                      color: Color(0xFFFFC400),
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
                               ),

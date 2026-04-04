@@ -1,5 +1,5 @@
 import 'package:quarto/features/dashboard/data/model/external_orders_model.dart';
-import 'package:quarto/features/dashboard/data/model/outcomes_model.dart';
+import 'package:quarto/features/dashboard/data/model/room_outcomes_model.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
@@ -484,22 +484,23 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<void> addOutComes({required int price, required String note}) async {
+  Future<void> addRoomOutcomesItems(RoomOutcomesModel items) async {
     try {
-      await supabase.from('outcomes').insert({
-        "price": price,
-        "note": note,
+      await supabase.from('room_outcomes').insert({
+        'material': items.material,
+        'quantity': items.quantity,
+        'price': items.price,
       });
     } catch (e) {
       // Handle error appropriately
-      throw Exception('Failed to add outcome: $e');
+      throw Exception('Failed to add Room outcome: $e');
     }
   }
 
   @override
-  Future<List<OutcomesModel>> outComesData() async {
+  Future<List<RoomOutcomesModel>> getRoomOutcomesItems() async {
     final response = await supabase
-        .from('outcomes')
+        .from('room_outcomes')
         .select() // This selects ALL columns
         .order(
           'id',
@@ -507,16 +508,8 @@ class DashboardRepositoryImp implements DashboardRepository {
         ); // Or don't order if you don't have created_at
 
     return (response as List)
-        .map((json) => OutcomesModel.fromJson(json))
+        .map((json) => RoomOutcomesModel.fromJson(json))
         .toList();
-  }
-
-  @override
-  Future<void> deleteOutComesData(String id) async {
-    await supabase
-        .from('outcomes')
-        .delete()
-        .eq('id', id); // This specifies which row to delete
   }
 
   @override
@@ -567,19 +560,6 @@ class DashboardRepositoryImp implements DashboardRepository {
           .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
     } catch (e) {
       rethrow;
-    }
-  }
-
-  @override
-  Future<void> clearAllOutComes() async {
-    try {
-      await supabase
-          .from('outcomes')
-          .delete()
-          .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
-      // print("susscess");
-    } catch (e) {
-      throw Exception('Failed to clear all outcomes: $e');
     }
   }
 

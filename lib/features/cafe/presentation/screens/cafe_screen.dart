@@ -8,6 +8,7 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
 import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
+import 'package:quarto/features/cafe/presentation/screens/cafe_outcomes.dart';
 import 'package:quarto/features/cafe/presentation/screens/orders_details_page.dart';
 import 'package:quarto/features/cafe/presentation/screens/tabel_details_page.dart';
 import 'package:quarto/features/cafe/presentation/utils/cafe_order_utils.dart';
@@ -105,6 +106,7 @@ class _CafeScreenState extends State<CafeScreen> {
     await _loadCafeData();
   }
 
+  double? totalRevenue;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -144,7 +146,16 @@ class _CafeScreenState extends State<CafeScreen> {
                   ExportButtonsWidget(
                     title: 'Outcomes',
                     icon: Icons.wallet,
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) => CafeOutcomes(
+                            totalRevenue: totalRevenue ?? 0,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -181,6 +192,7 @@ class _CafeScreenState extends State<CafeScreen> {
                           0,
                           (total, order) => total + calculateOrderTotal(order),
                         );
+                    totalRevenue = todayIncome;
                   }
 
                   return Row(

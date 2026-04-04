@@ -1,8 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:quarto/features/cafe/data/repository_imp/cafe_repository_imp.dart';
 import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
+import 'package:quarto/features/cafe/domain/usecases/add_cafe_outcomes_usecase.dart';
 import 'package:quarto/features/cafe/domain/usecases/add_order_item_usecase.dart';
 import 'package:quarto/features/cafe/domain/usecases/add_order_usecase.dart';
+import 'package:quarto/features/cafe/domain/usecases/get_cafe_outcomes_usecase.dart';
 import 'package:quarto/features/cafe/domain/usecases/get_order_by_table_usecase.dart';
 import 'package:quarto/features/cafe/domain/usecases/get_order_item_usecase.dart';
 import 'package:quarto/features/cafe/domain/usecases/get_order_usecase.dart';
@@ -13,17 +15,15 @@ import 'package:quarto/features/dashboard/domain/repository/dashboard_repository
 import 'package:quarto/features/dashboard/domain/usecases/add_comment_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/add_orders_usecase.dart';
-import 'package:quarto/features/dashboard/domain/usecases/add_outcome_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/add_room_outcome_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/clear_all_external_orders_usecase.dart';
-import 'package:quarto/features/dashboard/domain/usecases/clear_all_outcomes_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/delete_external_order.dart';
-import 'package:quarto/features/dashboard/domain/usecases/delete_outcome_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/edit_external_order_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/end_session_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_all_rooms_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_dashboard_stats_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_external_orders_usecase.dart';
-import 'package:quarto/features/dashboard/domain/usecases/get_outcomes_usecase.dart';
+import 'package:quarto/features/dashboard/domain/usecases/get_room_outcomes_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_history_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/get_room_usecase.dart';
 import 'package:quarto/features/dashboard/domain/usecases/start_new_day_usecase.dart';
@@ -70,16 +70,13 @@ Future<void> init() async {
   sl.registerLazySingleton<AddOrdersUsecase>(
     () => AddOrdersUsecase(repository: sl()),
   );
-  sl.registerLazySingleton<AddOutcomeUsecase>(
-    () => AddOutcomeUsecase(repository: sl()),
+  sl.registerLazySingleton<AddRoomOutcomeUsecase>(
+    () => AddRoomOutcomeUsecase(repository: sl()),
   );
-  sl.registerLazySingleton<GetOutcomesUsecase>(
-    () => GetOutcomesUsecase(repository: sl()),
+  sl.registerLazySingleton<GetRoomOutcomesUsecase>(
+    () => GetRoomOutcomesUsecase(repository: sl()),
   );
 
-  sl.registerLazySingleton<DeleteOutcomeUsecase>(
-    () => DeleteOutcomeUsecase(repository: sl()),
-  );
   sl.registerLazySingleton<AddExternalOrderUsecase>(
     () => AddExternalOrderUsecase(repository: sl()),
   );
@@ -91,9 +88,6 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<ClearAllExternalOrdersUsecase>(
     () => ClearAllExternalOrdersUsecase(repository: sl()),
-  );
-  sl.registerLazySingleton<ClearAllOutcomesUsecase>(
-    () => ClearAllOutcomesUsecase(repository: sl()),
   );
   sl.registerLazySingleton<AddCommentUsecase>(
     () => AddCommentUsecase(repository: sl()),
@@ -123,5 +117,11 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<UpdateTableStatusUseCase>(
     () => UpdateTableStatusUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton<AddCafeOutcomesUsecase>(
+    () => AddCafeOutcomesUsecase(repository: sl()),
+  );
+  sl.registerLazySingleton<GetCafeOutcomesUsecase>(
+    () => GetCafeOutcomesUsecase(repository: sl()),
   );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/consts/app_const.dart';
+import 'package:quarto/features/cafe/presentation/cubits/cafe_outcomes_cubit/cafe_outcomes_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/order_items_cubit/order_items_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/orders_cubit/orders_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
@@ -72,11 +73,15 @@ class MyApp extends StatelessWidget {
           ),
         ),
         BlocProvider(
-          create: (context) => OutcomesCubit(
-            addOutcomeUsecase: sl(),
-            getOutcomesUsecase: sl(),
-            deleteOutcomeUsecase: sl(),
-            clearAllOutcomesUsecase: sl(),
+          create: (context) => RoomOutcomesCubit(
+            addRoomOutcomeUsecase: sl(),
+            getRoomOutcomesUsecase: sl(),
+          ),
+        ),
+        BlocProvider(
+          create: (context) => CafeOutcomesCubit(
+            addCafeOutcomesUsecase: sl(),
+            getCafeOutcomesUsecase: sl(),
           ),
         ),
         BlocProvider(

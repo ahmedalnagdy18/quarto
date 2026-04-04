@@ -1,52 +1,30 @@
 part of 'outcomes_cubit.dart';
 
 @immutable
-sealed class OutcomesState {}
+sealed class RoomOutcomesState {}
 
-final class OutcomesInitial extends OutcomesState {}
+final class OutcomesInitial extends RoomOutcomesState {}
 
-class LoadingAddOutcomes extends OutcomesState {}
+class LoadingAddOutcomes extends RoomOutcomesState {}
 
-class SuccessAddOutcomes extends OutcomesState {}
+class SuccessAddOutcomes extends RoomOutcomesState {}
 
-class ErrorAddOutcomes extends OutcomesState {
+class ErrorAddOutcomes extends RoomOutcomesState {
   final String message;
 
   ErrorAddOutcomes({required this.message});
 }
 
-class LoadingGetOutcomes extends OutcomesState {}
+class LoadingGetOutcomes extends RoomOutcomesState {}
 
-class SuccessGetOutcomes extends OutcomesState {
-  final List<OutcomesModel> data;
+class SuccessGetOutcomes extends RoomOutcomesState {
+  final List<RoomOutcomesModel> data;
 
   SuccessGetOutcomes({required this.data});
 }
 
-class ErrorGetOutcomes extends OutcomesState {
+class ErrorGetOutcomes extends RoomOutcomesState {
   final String message;
 
   ErrorGetOutcomes({required this.message});
-}
-
-class LoadingDeleteOutcome extends OutcomesState {}
-
-class SuccessDeleteOutcome extends OutcomesState {
-  final List<OutcomesModel>? updatedData;
-  SuccessDeleteOutcome({this.updatedData});
-}
-
-class ErrorDeleteOutcome extends OutcomesState {
-  final String message;
-  ErrorDeleteOutcome({required this.message});
-}
-
-class LoadingClearAllOutcomes extends OutcomesState {}
-
-class SuccessClearAllOutcomes extends OutcomesState {}
-
-class ErrorClearAllOutcomes extends OutcomesState {
-  final String message;
-
-  ErrorClearAllOutcomes({required this.message});
 }
