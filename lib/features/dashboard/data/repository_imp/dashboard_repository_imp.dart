@@ -19,7 +19,6 @@ class DashboardRepositoryImp implements DashboardRepository {
           .order('name', ascending: true);
       return (response as List).map((json) => Room.fromJson(json)).toList();
     } catch (e) {
-      // print('Error getting rooms: $e');
       rethrow;
     }
   }
@@ -32,24 +31,7 @@ class DashboardRepositoryImp implements DashboardRepository {
       final occupiedRooms = rooms.where((r) => r.isOccupied).length;
       final freeRooms = rooms.length - occupiedRooms;
 
-      // ================= احسب دخل كل الغرف =================
       double totalIncome = 0;
-
-      // تحقق من كل الجلسات في الداتابيز
-      // final allSessions = await supabase
-      //     .from('session_history')
-      //     .select('id, total_cost, orders, start_time, room_id')
-      //     .not('end_time', 'is', null);
-
-      // for (var session in allSessions) {
-      //   final cost = session['total_cost'] ?? 0;
-      //   final orders = session['orders'] ?? 0;
-      //   final sessionCost =
-      //       (cost as num).toDouble() - (orders as num).toDouble();
-      //   print(
-      //     "  - Session ${session['id']}: Total=$cost, Orders=$orders, Session Cost=${sessionCost.toStringAsFixed(2)}",
-      //   );
-      // }
 
       for (var room in rooms) {
         try {
@@ -68,15 +50,12 @@ class DashboardRepositoryImp implements DashboardRepository {
           }
 
           if (roomTotal > 0) {
-            // print("  - ${room.name}: ${roomTotal.toStringAsFixed(0)} \$");
             totalIncome += roomTotal;
           }
         } catch (e) {
-          // print("  - Error for ${room.name}: $e");
+          // ignore broken room totals and continue
         }
       }
-
-      // print("💰 FINAL TOTAL: ${totalIncome.toStringAsFixed(0)} \$");
 
       return {
         'totalRooms': rooms.length,
@@ -86,7 +65,6 @@ class DashboardRepositoryImp implements DashboardRepository {
         'rooms': rooms,
       };
     } catch (e) {
-      // print("❌ Error in getDashboardStats: $e");
       rethrow;
     }
   }
@@ -101,7 +79,6 @@ class DashboardRepositoryImp implements DashboardRepository {
           .single();
       return Room.fromJson(response);
     } catch (e) {
-      // print('Error getting room: $e');
       rethrow;
     }
   }
@@ -132,14 +109,9 @@ class DashboardRepositoryImp implements DashboardRepository {
   }) async {
     try {
       final now = DateTime.now().toUtc();
-
-      // Get room info
       final room = await getRoom(roomId);
-
-      // Use provided hourly rate or calculate based on selection
       final finalHourlyRate = hourlyRate ?? room.hourlyRate;
 
-      // Update room with session info
       final updateData = {
         'is_occupied': true,
         'session_start': now.toIso8601String(),
@@ -158,15 +130,12 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       await supabase.from('rooms').update(updateData).eq('id', roomId);
 
-      // Add session to history
       final sessionData = {
         'room_id': roomId,
         'start_time': now.toIso8601String(),
         'hourly_rate': finalHourlyRate,
         'total_cost': 0.0,
         'created_at': now.toIso8601String(),
-        // REMOVE 'updated_at' if column doesn't exist
-        // 'updated_at': now.toIso8601String(),
       };
 
       if (psType != null) {
@@ -183,69 +152,143 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
+  Future<void> moveRoomSession({
+    required String fromRoomId,
+    required String toRoomId,
+  }) async {
+    try {
+      final now = DateTime.now().toUtc();
+      final sourceRoom = await getRoom(fromRoomId);
+      final targetRoom = await getRoom(toRoomId);
+
+      if (!sourceRoom.isOccupied || sourceRoom.sessionStart == null) {
+        throw Exception('No active session found for this room.');
+      }
+      if (targetRoom.isOccupied) {
+        throw Exception('Target room is already occupied.');
+      }
+
+      final activeSession = await _getActiveSession(fromRoomId);
+      if (activeSession == null) {
+        throw Exception('No active session found in database.');
+      }
+
+      final sourceStart = sourceRoom.sessionStart!.toUtc();
+      final currentSegmentCost = _calculateSegmentCost(
+        start: sourceStart,
+        end: now,
+        hourlyRate: sourceRoom.hourlyRate,
+      );
+
+      final sessionOrdersTotal =
+          (activeSession['orders'] as num?)?.toDouble() ??
+          sourceRoom.ordersTotal;
+      final storedTotal =
+          (activeSession['total_cost'] as num?)?.toDouble() ?? 0.0;
+      final carriedSessionCost = (storedTotal - sessionOrdersTotal).clamp(
+        0.0,
+        double.infinity,
+      );
+      final updatedRunningTotal =
+          carriedSessionCost + currentSegmentCost + sessionOrdersTotal;
+
+      await supabase
+          .from('rooms')
+          .update({
+            'is_occupied': false,
+            'session_start': null,
+            'ps_type': null,
+            'is_multi': null,
+            'orders': 0,
+            'orders_items': <Map<String, dynamic>>[],
+            'updated_at': now.toIso8601String(),
+          })
+          .eq('id', fromRoomId);
+
+      await supabase
+          .from('rooms')
+          .update({
+            'is_occupied': true,
+            'session_start': now.toIso8601String(),
+            'ps_type': sourceRoom.psType,
+            'is_multi': sourceRoom.isMulti,
+            'orders': sessionOrdersTotal,
+            'orders_items': sourceRoom.ordersList
+                .map((item) => item.toJson())
+                .toList(),
+            'updated_at': now.toIso8601String(),
+          })
+          .eq('id', toRoomId);
+
+      await supabase
+          .from('session_history')
+          .update({
+            'room_id': toRoomId,
+            'start_time': now.toIso8601String(),
+            'hourly_rate': targetRoom.hourlyRate,
+            'total_cost': updatedRunningTotal,
+            'orders': sessionOrdersTotal,
+            'ps_type': sourceRoom.psType,
+            'is_multi': sourceRoom.isMulti,
+            'updated_at': now.toIso8601String(),
+          })
+          .eq('id', activeSession['id']);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> endSession(String roomId) async {
     try {
       final now = DateTime.now().toUtc();
-
-      // الحصول على بيانات الغرفة
       final room = await getRoom(roomId);
 
       if (room.sessionStart == null) {
         throw Exception('No active session found for room $roomId');
       }
 
-      // تحويل sessionStart إلى UTC
       final sessionStartUtc = room.sessionStart!.toUtc();
-
-      // البحث عن الجلسة النشطة
       final activeSession = await _getActiveSession(roomId);
 
       if (activeSession == null) {
         throw Exception('No active session found in database');
       }
 
-      // حساب تكلفة الجلسة
-      double sessionCost = 0;
+      final existingOrdersCost =
+          (activeSession['orders'] as num?)?.toDouble() ?? room.ordersTotal;
+      final storedTotal =
+          (activeSession['total_cost'] as num?)?.toDouble() ?? 0.0;
+      final carriedSessionCost = (storedTotal - existingOrdersCost).clamp(
+        0.0,
+        double.infinity,
+      );
+
+      double currentSegmentCost = 0;
       if (!sessionStartUtc.isAfter(now)) {
-        final duration = now.difference(sessionStartUtc);
-        final hours = duration.inMinutes / 60.0;
-        sessionCost = (hours * room.hourlyRate);
+        currentSegmentCost = _calculateSegmentCost(
+          start: sessionStartUtc,
+          end: now,
+          hourlyRate: room.hourlyRate,
+        );
       }
 
-      // ⭐⭐ هنا المشكلة ⭐⭐
-      // بدل ما نأخذ room.orders (كل الأوردرات في تاريخ الغرفة)
-      // نأخذ الأوردرات الخاصة بالجلسة النشطة فقط
+      final totalCost =
+          carriedSessionCost + currentSegmentCost + existingOrdersCost;
 
-      double existingOrdersCost = 0;
-
-      // خد الأوردرات من الجلسة النشطة
-      if (activeSession['orders_items'] != null) {
-        final currentOrdersList = (activeSession['orders_items'] as List)
-            .map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-
-        if (currentOrdersList.isNotEmpty) {
-          existingOrdersCost = currentOrdersList.fold(
-            0.0,
-            (sum, item) => sum + item.price,
-          );
-        }
-      }
-
-      // الإجمالي = تكلفة الجلسة + الأوردرات
-      final totalCost = sessionCost + existingOrdersCost;
-
-      // تحديث حالة الغرفة
       await supabase
           .from('rooms')
           .update({
             'is_occupied': false,
             'session_start': null,
+            'ps_type': null,
+            'is_multi': null,
+            'orders': 0,
+            'orders_items': <Map<String, dynamic>>[],
             'updated_at': now.toIso8601String(),
           })
           .eq('id', roomId);
 
-      // تحديث الجلسة
       await supabase
           .from('session_history')
           .update({
@@ -255,29 +298,37 @@ class DashboardRepositoryImp implements DashboardRepository {
             'updated_at': now.toIso8601String(),
           })
           .eq('id', activeSession['id']);
-
-      print("✅ Session ended successfully");
     } catch (e) {
-      // print("❌ Error ending session: $e");
       rethrow;
     }
   }
 
-  // دالة مساعدة للحصول على الجلسة النشطة
+  double _calculateSegmentCost({
+    required DateTime start,
+    required DateTime end,
+    required double hourlyRate,
+  }) {
+    if (start.isAfter(end)) {
+      return 0.0;
+    }
+    final duration = end.difference(start);
+    final hours = duration.inMinutes / 60.0;
+    return hours * hourlyRate;
+  }
+
   Future<Map<String, dynamic>?> _getActiveSession(String roomId) async {
     try {
       final response = await supabase
           .from('session_history')
           .select()
           .eq('room_id', roomId)
-          .filter('end_time', 'is', null) // البحث عن الجلسات النشطة
+          .filter('end_time', 'is', null)
           .order('start_time', ascending: false)
           .limit(1)
           .maybeSingle();
 
       return response;
     } catch (e) {
-      // print('Error getting active session: $e');
       return null;
     }
   }
@@ -285,12 +336,7 @@ class DashboardRepositoryImp implements DashboardRepository {
   @override
   Future<void> clearAllHistory() async {
     try {
-      await supabase
-          .from('session_history')
-          .delete()
-          .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
-
-      // print('All session history cleared');
+      await supabase.from('session_history').delete().not('id', 'is', null);
     } catch (e) {
       rethrow;
     }
@@ -300,26 +346,18 @@ class DashboardRepositoryImp implements DashboardRepository {
   Future<void> resetAllSessions() async {
     try {
       final now = DateTime.now().toUtc();
-
-      // print('Resetting all sessions...');
-
-      // 1. Get all rooms
       final rooms = await getAllRooms();
 
-      // 2. Reset each room individually (safer, always works)
       for (final room in rooms) {
         try {
-          // If room is occupied, try to end session properly
           if (room.isOccupied && room.sessionStart != null) {
             try {
               await endSession(room.id);
-              // print('Ended session for room: ${room.name}');
             } catch (e) {
-              // print('Could not properly end session for ${room.name}: $e');
+              // continue reset even if proper end failed
             }
           }
 
-          // Always reset the room state
           await supabase
               .from('rooms')
               .update({
@@ -327,44 +365,31 @@ class DashboardRepositoryImp implements DashboardRepository {
                 'session_start': null,
                 'ps_type': null,
                 'is_multi': null,
+                'orders': 0,
+                'orders_items': <Map<String, dynamic>>[],
                 'updated_at': now.toIso8601String(),
               })
               .eq('id', room.id);
-
-          // print('Reset room: ${room.name}');
         } catch (e) {
-          // print('Error resetting room ${room.name}: $e');
-          // Continue with next room
+          // continue with next room
         }
       }
-
-      // print('All rooms reset successfully');
     } catch (e) {
-      // print('Error resetting all sessions: $e');
       rethrow;
     }
   }
 
-  // Optional: Combined method to start new day
   @override
   Future<void> startNewDay() async {
     try {
-      // print('Starting new day...');
-
-      // 1. Reset all sessions (end active ones, reset rooms)
       await resetAllSessions();
 
-      // 2. Clear today's history (wrap in try-catch to continue even if it fails)
       try {
         await clearAllHistory();
       } catch (e) {
-        // print('Warning: Could not clear history: $e');
-        // Continue anyway - rooms are already reset
+        // ignore history cleanup failure after reset
       }
-
-      // print('New day started successfully');
     } catch (e) {
-      //  print('Error starting new day: $e');
       rethrow;
     }
   }
@@ -373,14 +398,12 @@ class DashboardRepositoryImp implements DashboardRepository {
   Future<void> addOrders(
     String roomId,
     List<OrderItem> orders, {
-    String? sessionId, //
+    String? sessionId,
   }) async {
     try {
       if (orders.isEmpty) return;
 
       final newOrdersPrice = orders.fold(0.0, (sum, item) => sum + item.price);
-
-      // 1. تحديث الغرفة
       final room = await getRoom(roomId);
       final updatedOrdersList = [...room.ordersList, ...orders];
       final updatedOrdersTotal = updatedOrdersList.fold(
@@ -397,49 +420,39 @@ class DashboardRepositoryImp implements DashboardRepository {
           })
           .eq('id', roomId);
 
-      // 2. تحديث الجلسة في session_history
       if (sessionId != null && sessionId.isNotEmpty) {
-        // جلب بيانات الجلسة الحالية
         final sessionResponse = await supabase
             .from('session_history')
             .select()
             .eq('id', sessionId)
             .single();
 
-        // Parse existing orders
         final currentOrdersList =
             (sessionResponse['orders_items'] as List?)
                 ?.map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e)))
                 .toList() ??
             [];
 
-        // ⭐⭐ هنا الفرق: newOrdersList للعرض فقط، لكن في الحساب نستخدم الجديدة بس
         final newOrdersList = [...currentOrdersList, ...orders];
         final newOrdersTotal = newOrdersList.fold(
           0.0,
           (sum, item) => sum + item.price,
         );
 
-        // ⭐⭐ الحساب الصحيح: نضيف سعر الأوردرات الجديدة فقط
         final currentTotalCost = (sessionResponse['total_cost'] as num)
             .toDouble();
-        final ordersToAdd = newOrdersPrice; // ⭐ بس الأوردرات الجديدة
-        final updatedTotalCost = currentTotalCost + ordersToAdd;
+        final updatedTotalCost = currentTotalCost + newOrdersPrice;
 
-        // تحديث الجلسة
         await supabase
             .from('session_history')
             .update({
-              'orders': newOrdersTotal, // الإجمالي الجديد لكل الأوردرات
+              'orders': newOrdersTotal,
               'orders_items': newOrdersList.map((o) => o.toJson()).toList(),
-              'total_cost': updatedTotalCost, // ⭐ صحيح: تضيف الجديدة فقط
+              'total_cost': updatedTotalCost,
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', sessionId);
-
-        // print("✅ Updated session_history table for session: $sessionId");
       } else {
-        // إذا sessionId مش موجود، نبحث عن الجلسة النشطة
         final activeSession = await _getActiveSession(roomId);
         if (activeSession != null) {
           final currentOrdersList =
@@ -454,11 +467,9 @@ class DashboardRepositoryImp implements DashboardRepository {
             (sum, item) => sum + item.price,
           );
 
-          // نفس المنطق: نضيف الجديدة فقط
           final currentTotalCost = (activeSession['total_cost'] as num)
               .toDouble();
-          final ordersToAdd = newOrdersPrice;
-          final updatedTotalCost = currentTotalCost + ordersToAdd;
+          final updatedTotalCost = currentTotalCost + newOrdersPrice;
 
           await supabase
               .from('session_history')
@@ -469,16 +480,9 @@ class DashboardRepositoryImp implements DashboardRepository {
                 'updated_at': DateTime.now().toIso8601String(),
               })
               .eq('id', activeSession['id']);
-
-          // print("✅ Updated active session in session_history");
-        } else {
-          // print("⚠️ No active session found for room: $roomId");
         }
       }
-
-      // print("🎉 Orders added successfully to both tables!");
     } catch (e) {
-      // print("❌ Error in addOrders: $e");
       rethrow;
     }
   }
@@ -492,7 +496,6 @@ class DashboardRepositoryImp implements DashboardRepository {
         'price': items.price,
       });
     } catch (e) {
-      // Handle error appropriately
       throw Exception('Failed to add Room outcome: $e');
     }
   }
@@ -501,11 +504,8 @@ class DashboardRepositoryImp implements DashboardRepository {
   Future<List<RoomOutcomesModel>> getRoomOutcomesItems() async {
     final response = await supabase
         .from('room_outcomes')
-        .select() // This selects ALL columns
-        .order(
-          'id',
-          ascending: false,
-        ); // Or don't order if you don't have created_at
+        .select()
+        .order('id', ascending: false);
 
     return (response as List)
         .map((json) => RoomOutcomesModel.fromJson(json))
@@ -518,33 +518,26 @@ class DashboardRepositoryImp implements DashboardRepository {
   ) async {
     try {
       await supabase.from('external_orders').insert({
-        "table": externalOrdersModel.table,
-        "order": externalOrdersModel.order,
-        "payment": externalOrdersModel.payment,
+        'table': externalOrdersModel.table,
+        'order': externalOrdersModel.order,
+        'payment': externalOrdersModel.payment,
       });
     } catch (e) {
-      // Handle error appropriately
       throw Exception('Failed to add order: $e');
     }
   }
 
   @override
   Future<void> deleteExternalOrder(String id) async {
-    await supabase
-        .from('external_orders')
-        .delete()
-        .eq('id', id); // This specifies which row to delete
+    await supabase.from('external_orders').delete().eq('id', id);
   }
 
   @override
   Future<List<ExternalOrdersModel>> getExternalOrders() async {
     final response = await supabase
         .from('external_orders')
-        .select() // This selects ALL columns
-        .order(
-          'id',
-          ascending: false,
-        ); // Or don't order if you don't have created_at
+        .select()
+        .order('id', ascending: false);
 
     return (response as List)
         .map((json) => ExternalOrdersModel.fromJson(json))
@@ -554,10 +547,7 @@ class DashboardRepositoryImp implements DashboardRepository {
   @override
   Future<void> clearAllExternalOrders() async {
     try {
-      await supabase
-          .from('external_orders')
-          .delete()
-          .not('id', 'is', null); // <-- ده بيمسح كل الصفوف فعليًا
+      await supabase.from('external_orders').delete().not('id', 'is', null);
     } catch (e) {
       rethrow;
     }
@@ -574,14 +564,11 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       String? targetSessionId = sessionId;
 
-      // 1. تحديد الـ sessionId المستهدف
       if (targetSessionId == null || targetSessionId.isEmpty) {
-        // البحث عن آخر جلسة نشطة
         final activeSession = await _getActiveSession(roomId);
         if (activeSession != null) {
           targetSessionId = activeSession['id'] as String?;
         } else {
-          // البحث عن آخر جلسة منتهية
           final lastSession = await supabase
               .from('session_history')
               .select('id')
@@ -597,13 +584,10 @@ class DashboardRepositoryImp implements DashboardRepository {
         }
       }
 
-      // إذا لم يتم العثور على جلسة، نخرج من الدالة
       if (targetSessionId == null || targetSessionId.isEmpty) {
-        // print("⚠️ No sessions found for room: $roomId");
         return;
       }
 
-      // 2. جلب السجل الحالي لجلب قائمة التعليقات الموجودة
       final currentSession = await supabase
           .from('session_history')
           .select('comments')
@@ -612,32 +596,24 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       List<dynamic> currentComments = [];
       if (currentSession != null && currentSession['comments'] != null) {
-        // التأكد من أن الحقل هو عبارة عن قائمة، وإذا كان نصًا، نحوله لقائمة
         var commentsData = currentSession['comments'];
         if (commentsData is List) {
           currentComments = List.from(commentsData);
         } else if (commentsData is String) {
-          // إذا كان الحقل نصًا (من تحديث سابق)، نضعه في قائمة جديدة
           currentComments = [commentsData];
         }
-        // إذا كان null أو نوع آخر، نبدأ بقائمة فارغة
       }
 
-      // 3. إضافة التعليق الجديد إلى القائمة
       currentComments.add(comments);
 
-      // 4. تحديث الحقل بالقائمة الجديدة
       await supabase
           .from('session_history')
           .update({
-            'comments': currentComments, // <-- نرسل القائمة وليس النص
+            'comments': currentComments,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', targetSessionId);
-
-      // print("✅ Added comment to session: $targetSessionId");
     } catch (e) {
-      // print("❌ Error adding comment: $e");
       rethrow;
     }
   }
@@ -650,16 +626,13 @@ class DashboardRepositoryImp implements DashboardRepository {
       await supabase
           .from('external_orders')
           .update({
-            "id": externalOrdersModel.id,
-            "table": externalOrdersModel.table,
-            "order": externalOrdersModel.order,
-            "payment": externalOrdersModel.payment,
+            'id': externalOrdersModel.id,
+            'table': externalOrdersModel.table,
+            'order': externalOrdersModel.order,
+            'payment': externalOrdersModel.payment,
           })
-          .eq('id', externalOrdersModel.id); // ⭐ الشرط المهم
-
-      // print("✅ Order updated successfully with ID: ${externalOrdersModel.id}");
+          .eq('id', externalOrdersModel.id);
     } catch (e) {
-      // print("❌ Error updating order: $e");
       throw Exception('Failed to update order: $e');
     }
   }

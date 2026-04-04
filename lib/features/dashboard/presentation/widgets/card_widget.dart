@@ -23,14 +23,14 @@ class CardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 2),
       clipBehavior: Clip.antiAlias,
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minWidth: 150,
       ),
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 1,
             color: Colors.white10,
@@ -57,10 +57,10 @@ class CardWidget extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.white,
             ),
@@ -71,26 +71,24 @@ class CardWidget extends StatelessWidget {
   }
 }
 
-class NewRoomCardWidget extends StatefulWidget {
+class NewRoomCardWidget extends StatelessWidget {
   const NewRoomCardWidget({
     super.key,
     required this.room,
+    this.onMove,
   });
   final Room room;
-  @override
-  State<NewRoomCardWidget> createState() => _NewRoomCardWidgetState();
-}
+  final VoidCallback? onMove;
 
-class _NewRoomCardWidgetState extends State<NewRoomCardWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 2),
       clipBehavior: Clip.antiAlias,
       width: 270,
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 1,
             color: Colors.white10,
@@ -109,81 +107,74 @@ class _NewRoomCardWidgetState extends State<NewRoomCardWidget> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.door_back_door_outlined,
                 color: Colors.white,
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
-                widget.room.name,
-                style: TextStyle(
+                room.name,
+                style: const TextStyle(
                   fontSize: 14,
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              Spacer(),
-              widget.room.isVip
-                  ? VipWidget()
+              const Spacer(),
+              room.isVip
+                  ? const VipWidget()
                   : StandardWidget(
-                      data: widget.room.roomTypeDescription,
+                      data: room.roomTypeDescription,
                     ),
             ],
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           BlocBuilder<RoomsCubit, RoomsState>(
             builder: (context, state) {
-              if (state is RoomsLoaded) {
-                final room = state.rooms.firstWhere(
-                  (r) => r.id == widget.room.id,
-                );
+              if (state is! RoomsLoaded) {
+                return const SizedBox();
+              }
+
+              final currentRoom = state.rooms.firstWhere(
+                (r) => r.id == room.id,
+                orElse: () => room,
+              );
+
+              if (!currentRoom.isOccupied) {
                 return Center(
                   child: ElevatedButton.icon(
                     style: ButtonStyle(
                       backgroundColor: WidgetStatePropertyAll(
-                        room.isOccupied == false
-                            ? AppColors.blueColor
-                            : Colors.red,
+                        AppColors.blueColor,
                       ),
                       side: WidgetStatePropertyAll(
                         BorderSide(
                           width: 3,
-                          color: room.isOccupied == false
-                              ? AppColors.yellowColor
-                              : Colors.red,
+                          color: AppColors.yellowColor,
                         ),
                       ),
                     ),
                     onPressed: () {
-                      if (room.isOccupied == false) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return BlocProvider.value(
-                              value: context.read<RoomsCubit>(),
-                              child: SessionCardDailog(
-                                roomId: room.id,
-                                isRoom8: room.name == 'room8',
-                                isVip: room.isVip,
-                              ),
-                            );
-                          },
-                        );
-                      }
-                      if (room.isOccupied == true) {
-                        context.read<RoomsCubit>().endSession(
-                          room.id,
-                        );
-                      }
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return BlocProvider.value(
+                            value: context.read<RoomsCubit>(),
+                            child: SessionCardDailog(
+                              roomId: currentRoom.id,
+                              isRoom8: currentRoom.name == 'room8',
+                              isVip: currentRoom.isVip,
+                            ),
+                          );
+                        },
+                      );
                     },
-                    icon: Icon(
-                      room.isOccupied == false ? Icons.play_arrow : Icons.pause,
+                    icon: const Icon(
+                      Icons.play_arrow,
                       color: Colors.white,
                     ),
-                    label: Text(
-                      room.isOccupied == false
-                          ? 'Start Session'
-                          : 'End Session',
+                    label: const Text(
+                      'Start Session',
                       style: TextStyle(
                         color: Colors.white,
                       ),
@@ -191,7 +182,75 @@ class _NewRoomCardWidgetState extends State<NewRoomCardWidget> {
                   ),
                 );
               }
-              return SizedBox();
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: const ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(Colors.red),
+                        side: WidgetStatePropertyAll(
+                          BorderSide(
+                            width: 3,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        context.read<RoomsCubit>().endSession(currentRoom.id);
+                      },
+                      icon: const Icon(
+                        Icons.stop,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'End Session',
+                          style: TextStyle(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ButtonStyle(
+                        backgroundColor: const WidgetStatePropertyAll(
+                          Colors.transparent,
+                        ),
+                        side: const WidgetStatePropertyAll(
+                          BorderSide(
+                            width: 1,
+                            color: Colors.white,
+                          ),
+                        ),
+                        shape: WidgetStatePropertyAll(
+                          ContinuousRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      onPressed: onMove,
+                      icon: const Icon(
+                        Icons.move_down_outlined,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Move',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
             },
           ),
         ],

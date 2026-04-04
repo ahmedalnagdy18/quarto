@@ -196,12 +196,9 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
   }
 
   double _calculateSessionCost() {
-    if (widget.sessionHistory.endTime == null) return 0.0;
-    final duration = widget.sessionHistory.endTime!.difference(
-      widget.sessionHistory.startTime,
-    );
-    final hours = duration.inMinutes / 60.0;
-    return hours * widget.sessionHistory.hourlyRate;
+    final sessionCost =
+        widget.sessionHistory.totalCost - widget.sessionHistory.ordersTotal;
+    return sessionCost < 0 ? 0.0 : sessionCost;
   }
 
   double get _newOrdersTotal {

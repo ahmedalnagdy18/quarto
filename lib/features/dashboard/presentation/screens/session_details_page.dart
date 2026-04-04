@@ -15,34 +15,28 @@ class SessionDetailsPage extends StatelessWidget {
   });
 
   double calculateSessionCost(SessionHistory session) {
-    if (session.endTime == null) return 0.0;
-
-    final duration = session.endTime!.difference(session.startTime);
-    final hours = duration.inMinutes / 60.0;
-    return hours * session.hourlyRate;
+    final sessionCost = session.totalCost - session.ordersTotal;
+    return sessionCost < 0 ? 0.0 : sessionCost;
   }
 
   @override
   Widget build(BuildContext context) {
     final sessionCost = calculateSessionCost(history);
     final ordersCost = history.ordersTotal;
-    final totalCost = sessionCost + ordersCost;
+    final totalCost = history.totalCost;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Bg image
           SizedBox(
             width: double.infinity,
             height: double.infinity,
             child: Image.asset(
-              "images/bg.png",
+              'images/bg.png',
               fit: BoxFit.cover,
             ),
           ),
-
-          // page item
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
@@ -52,19 +46,19 @@ class SessionDetailsPage extends StatelessWidget {
                   'images/quarto_logo.png',
                   scale: 4,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     InkWell(
                       onTap: () => Navigator.pop(context),
-                      child: Icon(
+                      child: const Icon(
                         Icons.arrow_back,
                         color: Colors.white,
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Text(
+                    const SizedBox(width: 12),
+                    const Text(
                       'Session Details',
                       style: TextStyle(
                         fontSize: 20,
@@ -74,7 +68,7 @@ class SessionDetailsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -87,7 +81,7 @@ class SessionDetailsPage extends StatelessWidget {
                         data: history.formattedDuration,
                       ),
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     Expanded(
                       flex: 1,
                       child: activeSessionCard(
@@ -96,7 +90,7 @@ class SessionDetailsPage extends StatelessWidget {
                         data: history.sessionTypeInfo,
                       ),
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     Expanded(
                       flex: 1,
                       child: activeSessionCard(
@@ -105,7 +99,7 @@ class SessionDetailsPage extends StatelessWidget {
                         data: history.startTimeShort,
                       ),
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     Expanded(
                       flex: 1,
                       child: activeSessionCard(
@@ -113,13 +107,12 @@ class SessionDetailsPage extends StatelessWidget {
                         title: 'End',
                         data: history.endTime != null
                             ? history.endTimeShort
-                            : "Running",
+                            : 'Running',
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
-                //todo;;;''xcxczxcxzcxzc
+                const SizedBox(height: 20),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -128,34 +121,33 @@ class SessionDetailsPage extends StatelessWidget {
                       flex: 1,
                       child: activeSessionCard(
                         icon: Icons.money,
-                        title: 'Session free',
-                        data: "${sessionCost.toStringAsFixed(0)} \$",
+                        title: 'Session fee',
+                        data: '${sessionCost.toStringAsFixed(0)} \$',
                       ),
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     Expanded(
                       flex: 1,
                       child: activeSessionCard(
                         icon: Icons.menu,
                         title: 'Orders',
-                        data: "${ordersCost.toStringAsFixed(0)} \$",
+                        data: '${ordersCost.toStringAsFixed(0)} \$',
                       ),
                     ),
-                    SizedBox(width: 20),
+                    const SizedBox(width: 20),
                     Expanded(
                       flex: 1,
                       child: totalSessionCard(
                         icon: Icons.euro,
                         title: 'Total',
-                        data: "${totalCost.toStringAsFixed(0)} \$",
+                        data: '${totalCost.toStringAsFixed(0)} \$',
                       ),
                     ),
-                    SizedBox(width: 20),
-                    Spacer(flex: 1),
+                    const SizedBox(width: 20),
+                    const Spacer(flex: 1),
                   ],
                 ),
-
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -163,7 +155,7 @@ class SessionDetailsPage extends StatelessWidget {
                         widget: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                            const Row(
                               children: [
                                 Icon(
                                   Icons.chat_outlined,
@@ -180,12 +172,12 @@ class SessionDetailsPage extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
                             Expanded(
                               child: history.comments!.isEmpty
-                                  ? Center(
+                                  ? const Center(
                                       child: Text(
-                                        "There's no comments yet",
+                                        'There\'s no comments yet',
                                         style: TextStyle(
                                           color: Colors.white60,
                                         ),
@@ -201,15 +193,15 @@ class SessionDetailsPage extends StatelessWidget {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               Icons.person,
                                               color: Colors.white60,
                                             ),
-                                            SizedBox(width: 8),
+                                            const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
                                                 comment.toString(),
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   color: Colors.white60,
                                                 ),
                                               ),
@@ -218,20 +210,20 @@ class SessionDetailsPage extends StatelessWidget {
                                         );
                                       },
                                       separatorBuilder: (_, __) =>
-                                          SizedBox(height: 12),
+                                          const SizedBox(height: 12),
                                     ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    SizedBox(width: 30),
+                    const SizedBox(width: 30),
                     Expanded(
                       child: commentsCardWidget(
                         widget: history.ordersList.isEmpty
-                            ? Center(
+                            ? const Center(
                                 child: Text(
-                                  "There's no Orders yet",
+                                  'There\'s no Orders yet',
                                   style: TextStyle(
                                     color: Colors.white60,
                                   ),
@@ -240,7 +232,7 @@ class SessionDetailsPage extends StatelessWidget {
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
+                                  const Row(
                                     children: [
                                       Icon(
                                         Icons.list,
@@ -256,18 +248,18 @@ class SessionDetailsPage extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                   Expanded(
                                     child: buildOrdersList(
                                       history.ordersList,
                                     ),
                                   ),
-                                  Divider(),
+                                  const Divider(),
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
+                                      const Text(
                                         'Total',
                                         style: TextStyle(
                                           color: Colors.white,
@@ -276,7 +268,7 @@ class SessionDetailsPage extends StatelessWidget {
                                       ),
                                       Text(
                                         '${history.ordersTotal.toStringAsFixed(0)} EGP',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -304,9 +296,9 @@ Widget totalSessionCard({
   required String data,
 }) {
   return Container(
-    padding: EdgeInsets.all(12),
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      boxShadow: [
+      boxShadow: const [
         BoxShadow(
           blurRadius: 1,
           color: Colors.white10,
@@ -322,14 +314,14 @@ Widget totalSessionCard({
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, color: AppColors.blueColor),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Text(
           title,
           style: TextStyle(
             color: AppColors.blueColor,
           ),
         ),
-        Spacer(),
+        const Spacer(),
         Text(
           data,
           style: TextStyle(

@@ -31,16 +31,14 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Bg image
           SizedBox(
             width: double.infinity,
             height: double.infinity,
             child: Image.asset(
-              "images/bg.png",
+              'images/bg.png',
               fit: BoxFit.cover,
             ),
           ),
-          // page item
           BlocListener<SessionHistoryCubit, SessionHistoryState>(
             listener: (context, state) {
               if (state is SuccessAddComment) {
@@ -64,20 +62,19 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                   final now = DateTime.now();
 
                   final start = widget.room.sessionStart;
-
                   final duration = start != null
                       ? now.difference(start)
                       : Duration.zero;
-
                   final hours = duration.inMinutes / 60.0;
+                  final liveSegmentCost = hours * widget.room.hourlyRate;
+                  final currentCost = activeSession == null
+                      ? 0.0
+                      : activeSession.totalCost + liveSegmentCost;
 
-                  final currentCost = hours * widget.room.hourlyRate;
-
-                  // format duration (hh:mm)
                   String formatDuration(Duration d) {
                     final hours = d.inHours;
                     final minutes = d.inMinutes % 60;
-                    return "${hours}h ${minutes}m";
+                    return '${hours}h ${minutes}m';
                   }
 
                   return Padding(
@@ -94,17 +91,17 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                 'images/quarto_logo.png',
                                 scale: 4,
                               ),
-                              Spacer(),
+                              const Spacer(),
                               ExportButtonsWidget(
                                 title: 'Export history',
                                 icon: Icons.download,
                                 onPressed: () {},
                               ),
-                              SizedBox(width: 20),
+                              const SizedBox(width: 20),
                               Container(
-                                margin: EdgeInsets.only(right: 10),
+                                margin: const EdgeInsets.only(right: 10),
                                 child: AddButton(
-                                  title: "Add order",
+                                  title: 'Add order',
                                   onPressed: activeSession != null
                                       ? () {
                                           showDialog(
@@ -122,21 +119,21 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               InkWell(
                                 onTap: () => Navigator.pop(context),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.arrow_back,
                                   color: Colors.white,
                                 ),
                               ),
-                              SizedBox(width: 12),
+                              const SizedBox(width: 12),
                               Text(
                                 '${widget.room.name} - Activity Overview',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -144,9 +141,9 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 12),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 36),
+                          const SizedBox(height: 12),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 36),
                             child: Text(
                               'Current player session details and transaction logs.',
                               style: TextStyle(
@@ -155,8 +152,8 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               ),
                             ),
                           ),
-                          SizedBox(height: 30),
-                          Text(
+                          const SizedBox(height: 30),
+                          const Text(
                             'Active Session',
                             style: TextStyle(
                               fontSize: 20,
@@ -164,7 +161,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(height: 30),
+                          const SizedBox(height: 30),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,45 +172,44 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                   title: 'Duration',
                                   data: start != null
                                       ? formatDuration(duration)
-                                      : "--",
+                                      : '--',
                                 ),
                               ),
-                              SizedBox(width: 20),
+                              const SizedBox(width: 20),
                               Expanded(
                                 child: activeSessionCard(
                                   icon: Icons.people_alt_outlined,
                                   title: 'Type',
                                   data: !widget.room.isOccupied
-                                      ? "--"
+                                      ? '--'
                                       : widget.room.isMulti == true
-                                      ? "Multi"
-                                      : "Single",
+                                      ? 'Multi'
+                                      : 'Single',
                                 ),
                               ),
-                              SizedBox(width: 20),
+                              const SizedBox(width: 20),
                               Expanded(
                                 child: activeSessionCard(
                                   icon: Icons.play_arrow_outlined,
                                   title: 'Start',
                                   data: start != null
-                                      ? "${start.hour}:${start.minute}"
-                                      : "--",
+                                      ? '${start.hour}:${start.minute}'
+                                      : '--',
                                 ),
                               ),
-                              SizedBox(width: 20),
+                              const SizedBox(width: 20),
                               Expanded(
                                 child: activeSessionCard(
                                   icon: Icons.attach_money,
                                   title: 'Current Cost',
                                   data: start != null
-                                      ? "${currentCost.toStringAsFixed(0)} \$"
-                                      : "0 \$",
+                                      ? '${currentCost.toStringAsFixed(0)} \$'
+                                      : '0 \$',
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: 20),
-                          // comments & details
+                          const SizedBox(height: 20),
                           Row(
                             children: [
                               Expanded(
@@ -222,7 +218,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(
+                                      const Row(
                                         children: [
                                           Icon(
                                             Icons.chat_outlined,
@@ -239,11 +235,11 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                           ),
                                         ],
                                       ),
-                                      SizedBox(height: 20),
+                                      const SizedBox(height: 20),
                                       Container(
-                                        padding: EdgeInsets.all(12),
+                                        padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          boxShadow: [
+                                          boxShadow: const [
                                             BoxShadow(
                                               blurRadius: 1,
                                               color: Colors.white10,
@@ -264,10 +260,10 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                           controller: commentsController,
                                           maxLines: 3,
                                           minLines: 2,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             color: Colors.white,
                                           ),
-                                          decoration: InputDecoration(
+                                          decoration: const InputDecoration(
                                             hintText: 'Add new comment',
                                             hintStyle: TextStyle(
                                               color: Colors.white,
@@ -278,10 +274,9 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                           ),
                                         ),
                                       ),
-                                      SizedBox(height: 12),
+                                      const SizedBox(height: 12),
                                       Align(
-                                        alignment:
-                                            AlignmentGeometry.bottomRight,
+                                        alignment: Alignment.bottomRight,
                                         child: AddButton(
                                           title: 'Add comment',
                                           onPressed: () {
@@ -301,21 +296,21 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                           },
                                         ),
                                       ),
-                                      SizedBox(height: 12),
+                                      const SizedBox(height: 12),
                                       Expanded(
                                         child: activeSession == null
-                                            ? Center(
+                                            ? const Center(
                                                 child: Text(
-                                                  "No active session",
+                                                  'No active session',
                                                   style: TextStyle(
                                                     color: Colors.white60,
                                                   ),
                                                 ),
                                               )
                                             : activeComments.isEmpty
-                                            ? Center(
+                                            ? const Center(
                                                 child: Text(
-                                                  "There's no comments yet",
+                                                  'There\'s no comments yet',
                                                   style: TextStyle(
                                                     color: Colors.white60,
                                                   ),
@@ -333,47 +328,48 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                                         CrossAxisAlignment
                                                             .start,
                                                     children: [
-                                                      Icon(
+                                                      const Icon(
                                                         Icons.person,
                                                         color: Colors.white60,
                                                       ),
-                                                      SizedBox(width: 8),
+                                                      const SizedBox(width: 8),
                                                       Expanded(
                                                         child: Text(
                                                           comment.toString(),
-                                                          style: TextStyle(
-                                                            color:
-                                                                Colors.white60,
-                                                          ),
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Colors
+                                                                    .white60,
+                                                              ),
                                                         ),
                                                       ),
                                                     ],
                                                   );
                                                 },
                                                 separatorBuilder: (_, __) =>
-                                                    SizedBox(height: 12),
+                                                    const SizedBox(height: 12),
                                               ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 30),
+                              const SizedBox(width: 30),
                               Expanded(
                                 child: commentsCardWidget(
                                   widget: activeSession == null
-                                      ? Center(
+                                      ? const Center(
                                           child: Text(
-                                            "No active session",
+                                            'No active session',
                                             style: TextStyle(
                                               color: Colors.white60,
                                             ),
                                           ),
                                         )
                                       : activeOrders.isEmpty
-                                      ? Center(
+                                      ? const Center(
                                           child: Text(
-                                            "There's no Orders yet",
+                                            'There\'s no Orders yet',
                                             style: TextStyle(
                                               color: Colors.white60,
                                             ),
@@ -383,7 +379,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Row(
+                                            const Row(
                                               children: [
                                                 Icon(
                                                   Icons.list,
@@ -399,13 +395,13 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                                 ),
                                               ],
                                             ),
-                                            SizedBox(height: 20),
+                                            const SizedBox(height: 20),
                                             Expanded(
                                               child: buildOrdersList(
                                                 activeOrders,
                                               ),
                                             ),
-                                            Divider(),
+                                            const Divider(),
                                             Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment
@@ -420,7 +416,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                                                 ),
                                                 Text(
                                                   '${activeSession.ordersTotal.toStringAsFixed(0)} EGP',
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     color: Colors.white,
                                                     fontWeight: FontWeight.bold,
                                                   ),
@@ -433,8 +429,8 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 30),
-                          Text(
+                          const SizedBox(height: 30),
+                          const Text(
                             'Today history',
                             style: TextStyle(
                               fontSize: 20,
@@ -442,7 +438,7 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(height: 30),
+                          const SizedBox(height: 30),
                           _buildHistoryTable(
                             state.history,
                             widget.room,
@@ -473,9 +469,9 @@ Widget activeSessionCard({
   required String data,
 }) {
   return Container(
-    padding: EdgeInsets.all(12),
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      boxShadow: [
+      boxShadow: const [
         BoxShadow(
           blurRadius: 1,
           color: Colors.white10,
@@ -491,17 +487,17 @@ Widget activeSessionCard({
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, color: Colors.white),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
           ),
         ),
-        Spacer(),
+        const Spacer(),
         Text(
           data,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
@@ -516,9 +512,9 @@ Widget commentsCardWidget({
 }) {
   return Container(
     height: 300,
-    padding: EdgeInsets.all(12),
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      boxShadow: [
+      boxShadow: const [
         BoxShadow(
           blurRadius: 1,
           color: Colors.white10,
@@ -540,11 +536,8 @@ Widget _buildHistoryTable(
   BuildContext context,
 ) {
   double calculateSessionCost(SessionHistory session) {
-    if (session.endTime == null) return 0.0;
-
-    final duration = session.endTime!.difference(session.startTime);
-    final hours = duration.inMinutes / 60.0;
-    return hours * session.hourlyRate;
+    final sessionCost = session.totalCost - session.ordersTotal;
+    return sessionCost < 0 ? 0.0 : sessionCost;
   }
 
   return SizedBox(
@@ -558,7 +551,7 @@ Widget _buildHistoryTable(
         decoration: BoxDecoration(
           border: Border.all(color: Colors.white10),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               blurRadius: 1,
               color: Colors.white10,
@@ -570,39 +563,39 @@ Widget _buildHistoryTable(
         dataTextStyle: const TextStyle(color: Colors.white),
         headingTextStyle: const TextStyle(color: Colors.white),
         border: TableBorder.all(color: Colors.white10),
-        headingRowColor: MaterialStateProperty.all(Colors.transparent),
+        headingRowColor: const WidgetStatePropertyAll(Colors.transparent),
         horizontalMargin: 12,
         columns: const [
           DataColumn(
-            label: Text("#"),
+            label: Text('#'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("Start"),
+            label: Text('Start'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("End"),
+            label: Text('End'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("Duration"),
+            label: Text('Duration'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("Session"),
+            label: Text('Session'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("Orders"),
+            label: Text('Orders'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("Total"),
+            label: Text('Total'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
-            label: Text("Details"),
+            label: Text('Details'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
         ],
@@ -612,28 +605,28 @@ Widget _buildHistoryTable(
 
           final sessionCost = calculateSessionCost(session);
           final ordersCost = session.ordersTotal;
-          final totalCost = sessionCost + ordersCost;
+          final totalCost = session.totalCost;
 
           return DataRow(
             cells: [
-              DataCell(Center(child: Text("${index + 1}"))),
+              DataCell(Center(child: Text('${index + 1}'))),
               DataCell(Center(child: Text(session.startTimeShort))),
               DataCell(
                 Center(
                   child: Text(
-                    session.endTime != null ? session.endTimeShort : "Running",
+                    session.endTime != null ? session.endTimeShort : 'Running',
                   ),
                 ),
               ),
               DataCell(Center(child: Text(session.formattedDuration))),
               DataCell(
-                Center(child: Text("${sessionCost.toStringAsFixed(0)} EGP")),
+                Center(child: Text('${sessionCost.toStringAsFixed(0)} EGP')),
               ),
               DataCell(
                 Center(
                   child: Text(
-                    "${ordersCost.toStringAsFixed(0)} EGP",
-                    style: TextStyle(
+                    '${ordersCost.toStringAsFixed(0)} EGP',
+                    style: const TextStyle(
                       color: Colors.white,
                     ),
                   ),
@@ -642,8 +635,8 @@ Widget _buildHistoryTable(
               DataCell(
                 Center(
                   child: Text(
-                    "${totalCost.toStringAsFixed(0)} EGP",
-                    style: TextStyle(
+                    '${totalCost.toStringAsFixed(0)} EGP',
+                    style: const TextStyle(
                       color: Colors.white,
                     ),
                   ),
@@ -656,8 +649,8 @@ Widget _buildHistoryTable(
                       backgroundColor: WidgetStatePropertyAll(
                         AppColors.yellowColor,
                       ),
-                      padding: WidgetStatePropertyAll(
-                        EdgeInsetsGeometry.symmetric(
+                      padding: const WidgetStatePropertyAll(
+                        EdgeInsets.symmetric(
                           vertical: 0,
                           horizontal: 12,
                         ),

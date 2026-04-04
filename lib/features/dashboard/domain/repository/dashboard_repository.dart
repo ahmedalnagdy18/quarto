@@ -14,6 +14,10 @@ abstract class DashboardRepository {
   });
 
   Future<void> endSession(String roomId);
+  Future<void> moveRoomSession({
+    required String fromRoomId,
+    required String toRoomId,
+  });
   Future<List<SessionHistory>> getRoomHistory(String roomId);
   Future<Map<String, dynamic>> getDashboardStats();
   Future<void> resetAllSessions();
