@@ -10,12 +10,16 @@ class DashboardLoading extends DashboardState {}
 class DashboardLoaded extends DashboardState {
   final int totalFreeRooms;
   final int totalOccupiedRooms;
-  final double todayIncome;
+  final double roomsIncome;
+  final double ordersIncome;
+  final double totalIncome;
 
   DashboardLoaded({
     required this.totalFreeRooms,
     required this.totalOccupiedRooms,
-    required this.todayIncome,
+    required this.roomsIncome,
+    required this.ordersIncome,
+    required this.totalIncome,
   });
 }
 

@@ -31,29 +31,22 @@ class DashboardRepositoryImp implements DashboardRepository {
       final occupiedRooms = rooms.where((r) => r.isOccupied).length;
       final freeRooms = rooms.length - occupiedRooms;
 
-      double totalIncome = 0;
+      final sessions = await supabase
+          .from('session_history')
+          .select('total_cost, orders')
+          .not('end_time', 'is', null);
 
-      for (var room in rooms) {
-        try {
-          final roomHistoryResponse = await supabase
-              .from('session_history')
-              .select('total_cost, orders, start_time, end_time')
-              .eq('room_id', room.id)
-              .not('end_time', 'is', null);
+      double roomsIncome = 0.0;
+      double ordersIncome = 0.0;
 
-          double roomTotal = 0;
-          for (var session in roomHistoryResponse) {
-            final cost = session['total_cost'];
-            if (cost != null) {
-              roomTotal += (cost as num).toDouble();
-            }
-          }
+      for (final session in sessions) {
+        final totalCost = (session['total_cost'] as num?)?.toDouble() ?? 0.0;
+        final ordersCost = (session['orders'] as num?)?.toDouble() ?? 0.0;
+        final sessionOnlyIncome = totalCost - ordersCost;
 
-          if (roomTotal > 0) {
-            totalIncome += roomTotal;
-          }
-        } catch (e) {
-          // ignore broken room totals and continue
+        ordersIncome += ordersCost;
+        if (sessionOnlyIncome > 0) {
+          roomsIncome += sessionOnlyIncome;
         }
       }
 
@@ -61,7 +54,9 @@ class DashboardRepositoryImp implements DashboardRepository {
         'totalRooms': rooms.length,
         'occupiedRooms': occupiedRooms,
         'freeRooms': freeRooms,
-        'todayIncome': totalIncome,
+        'roomsIncome': roomsIncome,
+        'ordersIncome': ordersIncome,
+        'todayIncome': roomsIncome + ordersIncome,
         'rooms': rooms,
       };
     } catch (e) {
@@ -353,9 +348,7 @@ class DashboardRepositoryImp implements DashboardRepository {
           if (room.isOccupied && room.sessionStart != null) {
             try {
               await endSession(room.id);
-            } catch (e) {
-              // continue reset even if proper end failed
-            }
+            } catch (e) {}
           }
 
           await supabase
@@ -370,9 +363,7 @@ class DashboardRepositoryImp implements DashboardRepository {
                 'updated_at': now.toIso8601String(),
               })
               .eq('id', room.id);
-        } catch (e) {
-          // continue with next room
-        }
+        } catch (e) {}
       }
     } catch (e) {
       rethrow;
@@ -386,9 +377,7 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       try {
         await clearAllHistory();
-      } catch (e) {
-        // ignore history cleanup failure after reset
-      }
+      } catch (e) {}
     } catch (e) {
       rethrow;
     }

@@ -22,7 +22,9 @@ class DashboardCubit extends Cubit<DashboardState> {
         DashboardLoaded(
           totalFreeRooms: stats['freeRooms'] as int? ?? 0,
           totalOccupiedRooms: stats['occupiedRooms'] as int? ?? 0,
-          todayIncome: stats['todayIncome'] as double? ?? 0.0,
+          roomsIncome: stats['roomsIncome'] as double? ?? 0.0,
+          ordersIncome: stats['ordersIncome'] as double? ?? 0.0,
+          totalIncome: stats['todayIncome'] as double? ?? 0.0,
         ),
       );
     } catch (e) {
@@ -35,12 +37,13 @@ class DashboardCubit extends Cubit<DashboardState> {
     try {
       await startNewDayUsecase();
 
-      // Set to initial empty state for new day
       emit(
         DashboardLoaded(
           totalFreeRooms: 0,
           totalOccupiedRooms: 0,
-          todayIncome: 0.0,
+          roomsIncome: 0.0,
+          ordersIncome: 0.0,
+          totalIncome: 0.0,
         ),
       );
     } catch (e) {

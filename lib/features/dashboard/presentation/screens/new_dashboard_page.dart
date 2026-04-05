@@ -5,6 +5,7 @@ import 'package:quarto/core/colors/app_colors.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/room_details_page.dart';
 import 'package:quarto/features/dashboard/presentation/screens/rooms_outcomes_page.dart';
@@ -26,6 +27,7 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
   void initState() {
     context.read<RoomsCubit>().loadRoomsAndStats();
     context.read<DashboardCubit>().loadDashboardStats();
+    context.read<RoomOutcomesCubit>().getRoomOutcomes();
     super.initState();
   }
 
@@ -80,13 +82,15 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
       if (!mounted) {
         return;
       }
-      _showMessage('4{sourceRoom.name} moved to 4{targetRoom.name}.');
+      _showMessage('${sourceRoom.name} moved to ${targetRoom.name}.');
     } catch (error) {
       _showMessage(error.toString().replaceFirst('Exception: ', ''));
     }
   }
 
   double? totalRevenue;
+  double? totalOutcomess;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,13 +160,15 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                 builder: (context, state) {
                   int freeRooms = 0;
                   int occupiedRooms = 0;
-                  double todayIncome = 0.0;
+                  double roomsIncome = 0.0;
+                  double ordersIncome = 0.0;
 
                   if (state is DashboardLoaded) {
                     freeRooms = state.totalFreeRooms;
                     occupiedRooms = state.totalOccupiedRooms;
-                    todayIncome = state.todayIncome;
-                    totalRevenue = todayIncome;
+                    roomsIncome = state.roomsIncome;
+                    ordersIncome = state.ordersIncome;
+                    totalRevenue = state.totalIncome;
                   }
                   return Row(
                     children: [
@@ -184,24 +190,39 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                       const SizedBox(width: 20),
                       Expanded(
                         child: CardWidget(
-                          data: '${todayIncome.toStringAsFixed(0)}\$',
+                          data: '${roomsIncome.toStringAsFixed(0)}\$',
                           title: 'Rooms income',
                           state: state,
                         ),
                       ),
                       const SizedBox(width: 20),
-                      const Expanded(
+                      Expanded(
                         child: CardWidget(
-                          data: '1500\$',
+                          data: '${ordersIncome.toStringAsFixed(0)}\$',
                           title: 'Orders income',
+                          state: state,
                         ),
                       ),
                       const SizedBox(width: 20),
-                      const Expanded(
-                        child: CardWidget(
-                          data: '20\$',
-                          title: 'Outcomes',
-                        ),
+                      Expanded(
+                        child:
+                            BlocBuilder<RoomOutcomesCubit, RoomOutcomesState>(
+                              builder: (context, state) {
+                                if (state is SuccessGetOutcomes) {
+                                  final totalOutcomes = state.data.fold<double>(
+                                    0,
+                                    (sum, item) =>
+                                        sum + (item.price * item.quantity),
+                                  );
+                                  totalOutcomess = totalOutcomes;
+                                }
+                                return CardWidget(
+                                  data:
+                                      '${totalOutcomess?.toStringAsFixed(0)}\$',
+                                  title: 'Outcomes',
+                                );
+                              },
+                            ),
                       ),
                     ],
                   );
