@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/services/system_export_service.dart';
 import 'package:quarto/core/common/cafe_order_dailoge_widget.dart';
 import 'package:quarto/core/common/vip_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
@@ -119,7 +120,10 @@ class _TabelDetailsPageState extends State<TabelDetailsPage> {
                       ExportButtonsWidget(
                         title: 'Export history',
                         icon: Icons.download,
-                        onPressed: () {},
+                        onPressed: () => SystemExportService.exportCafeReport(
+                          context,
+                          table: widget.cafeTable,
+                        ),
                       ),
                       const SizedBox(width: 20),
                       Container(

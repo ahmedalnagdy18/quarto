@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/services/day_reset_service.dart';
+import 'package:quarto/core/services/system_export_service.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/domain/repository/dashboard_repository.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
@@ -39,6 +41,59 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _exportAllRooms() async {
+    await SystemExportService.exportRoomsReport(context);
+  }
+
+  Future<void> _confirmStartNewDay() async {
+    final roomsCubit = context.read<RoomsCubit>();
+    final dashboardCubit = context.read<DashboardCubit>();
+    final roomOutcomesCubit = context.read<RoomOutcomesCubit>();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF11133E),
+        title: const Text(
+          'Start New Day?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'A full backup for rooms and cafe will be created first, then all current data will be cleared to start a new day.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    try {
+      await DayResetService.startNewDay(context);
+      if (!mounted) {
+        return;
+      }
+      await roomsCubit.loadRoomsAndStats();
+      await dashboardCubit.loadDashboardStats();
+      await roomOutcomesCubit.getRoomOutcomes();
+    } catch (_) {}
   }
 
   Future<void> _moveRoom(Room sourceRoom, List<Room> allRooms) async {
@@ -111,15 +166,15 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                   ),
                   const Spacer(),
                   ExportButtonsWidget(
-                    title: 'Export history',
-                    icon: Icons.download,
-                    onPressed: () {},
+                    title: 'Start New Day',
+                    icon: Icons.list_alt_outlined,
+                    onPressed: _confirmStartNewDay,
                   ),
                   const SizedBox(width: 20),
                   ExportButtonsWidget(
-                    title: 'Start New Day',
-                    icon: Icons.list_alt_outlined,
-                    onPressed: () {},
+                    title: 'Export history',
+                    icon: Icons.download,
+                    onPressed: _exportAllRooms,
                   ),
                   const SizedBox(width: 20),
                   ExportButtonsWidget(

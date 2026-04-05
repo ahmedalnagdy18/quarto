@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/services/system_export_service.dart';
 import 'package:quarto/core/common/room_order_dailoge_widget.dart';
 import 'package:quarto/features/dashboard/data/model/room_model.dart';
 import 'package:quarto/features/dashboard/data/model/session_history_model.dart';
@@ -95,7 +96,11 @@ class _RoomDetailsPageState extends State<RoomDetailsPage> {
                               ExportButtonsWidget(
                                 title: 'Export history',
                                 icon: Icons.download,
-                                onPressed: () {},
+                                onPressed: () =>
+                                    SystemExportService.exportRoomsReport(
+                                      context,
+                                      room: widget.room,
+                                    ),
                               ),
                               const SizedBox(width: 20),
                               Container(

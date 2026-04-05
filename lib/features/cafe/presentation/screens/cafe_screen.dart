@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quarto/core/colors/app_colors.dart';
+import 'package:quarto/core/services/day_reset_service.dart';
+import 'package:quarto/core/services/system_export_service.dart';
 import 'package:quarto/core/common/app_button.dart';
 import 'package:quarto/core/common/cafe_order_dailoge_widget.dart';
 import 'package:quarto/core/fonts/app_text.dart';
@@ -11,10 +13,12 @@ import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
 import 'package:quarto/features/cafe/presentation/cubits/cafe_outcomes_cubit/cafe_outcomes_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/cafe/presentation/screens/cafe_outcomes.dart';
-import 'package:quarto/features/cafe/presentation/screens/orders_details_page.dart';
 import 'package:quarto/features/cafe/presentation/screens/tabel_details_page.dart';
 import 'package:quarto/features/cafe/presentation/utils/cafe_order_utils.dart';
 import 'package:quarto/features/cafe/presentation/widgets/table_card_widget.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/dashboard/dashboard_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
+import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/card_widget.dart';
 import 'package:quarto/injection_container.dart';
@@ -71,6 +75,58 @@ class _CafeScreenState extends State<CafeScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _exportAllCafe() async {
+    await SystemExportService.exportCafeReport(context);
+  }
+
+  Future<void> _confirmStartNewDay() async {
+    final cafeOutcomesCubit = context.read<CafeOutcomesCubit>();
+    final dashboardCubit = context.read<DashboardCubit>();
+    final roomsCubit = context.read<RoomsCubit>();
+    final roomOutcomesCubit = context.read<RoomOutcomesCubit>();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF11133E),
+        title: const Text(
+          'Start New Day?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'A full backup for rooms and cafe will be created first, then all current data will be cleared to start a new day.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) {
+      return;
+    }
+
+    try {
+      await DayResetService.startNewDay(context);
+      if (!mounted) {
+        return;
+      }
+      await _loadCafeData();
+      await cafeOutcomesCubit.getCafeOutcomes();
+      await dashboardCubit.loadDashboardStats();
+      await roomsCubit.loadRoomsAndStats();
+      await roomOutcomesCubit.getRoomOutcomes();
+    } catch (_) {}
   }
 
   Future<void> _openGeneralOrderDialog(String orderType) async {
@@ -187,23 +243,15 @@ class _CafeScreenState extends State<CafeScreen> {
                   Image.asset('images/quarto_logo.png', scale: 4),
                   const Spacer(),
                   ExportButtonsWidget(
-                    title: 'Export rooms',
-                    icon: Icons.download,
-                    onPressed: () {},
+                    title: 'Start New Day',
+                    icon: Icons.restart_alt,
+                    onPressed: _confirmStartNewDay,
                   ),
                   const SizedBox(width: 20),
                   ExportButtonsWidget(
-                    title: 'Orders',
-                    icon: Icons.list,
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) => const OrdersDetailsPage(),
-                        ),
-                      );
-                      await _loadCafeData();
-                    },
+                    title: 'Export history',
+                    icon: Icons.download,
+                    onPressed: _exportAllCafe,
                   ),
                   const SizedBox(width: 20),
                   ExportButtonsWidget(
