@@ -11,6 +11,10 @@ abstract class CafeRepository {
     required String fromTableId,
     required String toTableId,
   });
+  Future<void> updateOrderPaymentMethod({
+    required String orderId,
+    required String paymentMethod,
+  });
 
   Future<String> addOrder(OrderModel order);
   Future<List<OrderModel>> getOrders();

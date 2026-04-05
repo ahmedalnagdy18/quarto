@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:quarto/core/services/system_export_service.dart';
 import 'package:quarto/features/cafe/data/model/cafe_tabels_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
 import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
@@ -98,7 +99,8 @@ class _OrdersDetailsPageState extends State<OrdersDetailsPage> {
                       ExportButtonsWidget(
                         title: 'Export Orders history',
                         icon: Icons.download_outlined,
-                        onPressed: () {},
+                        onPressed: () =>
+                            SystemExportService.exportCafeOrdersReport(context),
                       ),
                       const SizedBox(width: 14),
                       ExportButtonsWidget(
@@ -341,11 +343,15 @@ class _OrdersStyledTableState extends State<_OrdersStyledTable> {
                                   ),
                                 ),
                               ),
-                              const _BodyCell(
+                              _BodyCell(
                                 flex: 2,
                                 child: Align(
                                   alignment: Alignment.center,
-                                  child: _PaymentChip(label: '--'),
+                                  child: _PaymentChip(
+                                    label: normalizePaymentMethod(
+                                      order.paymentMethod,
+                                    ),
+                                  ),
                                 ),
                               ),
                               _BodyCell(

@@ -87,3 +87,14 @@ String formatOrderTime(String value) {
   final minute = date.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
 }
+
+String normalizePaymentMethod(String? value) {
+  final normalized = value?.trim().toLowerCase() ?? '';
+  if (normalized == 'visa') {
+    return 'Visa';
+  }
+  if (normalized == 'cash') {
+    return 'Cash';
+  }
+  return '--';
+}

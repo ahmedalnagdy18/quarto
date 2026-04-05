@@ -102,6 +102,34 @@ class SystemExportService {
     }
   }
 
+  static Future<void> exportCafeOrdersReport(BuildContext context) async {
+    try {
+      final filePath = await _exportCafeOrdersReportFile();
+      if (filePath == null) {
+        throw Exception('Failed to generate orders export file.');
+      }
+
+      if (!context.mounted) {
+        return;
+      }
+
+      await _deliverFile(
+        context,
+        filePath: filePath,
+        successMessage: 'Orders export saved successfully.',
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      _showSnackBar(
+        context,
+        error.toString().replaceFirst('Exception: ', ''),
+        isError: true,
+      );
+    }
+  }
+
   static Future<List<String>> exportFullSystemBackup() async {
     final roomPath = await _exportRoomsReportFile();
     final cafePath = await _exportCafeReportFile();
@@ -170,6 +198,26 @@ class SystemExportService {
 
     final bytes = _buildCafeExcel(report);
     return _saveBytes(bytes, report.fileName, 'xlsx');
+  }
+
+  static Future<String?> _exportCafeOrdersReportFile() async {
+    final allTables = await _cafeRepository.getTables();
+    final orders = await _cafeRepository.getOrders();
+    final report = _CafeReportData(
+      tables: allTables,
+      allTables: allTables,
+      orders: finalizedCafeOrders(orders, allTables),
+      cafeOutcomes: const <CafeOutcomesModel>[],
+      selectedTable: null,
+    );
+
+    if (_isMobileDevice) {
+      final bytes = await _buildCafeOrdersPdf(report);
+      return _saveBytes(bytes, 'cafe_orders_${_timestamp()}', 'pdf');
+    }
+
+    final bytes = _buildCafeOrdersExcel(report);
+    return _saveBytes(bytes, 'cafe_orders_${_timestamp()}', 'xlsx');
   }
 
   static Uint8List _buildRoomsExcel(_RoomsReportData report) {
@@ -662,6 +710,170 @@ class SystemExportService {
                   .toList(),
             ),
           ],
+        ],
+      ),
+    );
+
+    return Uint8List.fromList(await pdf.save());
+  }
+
+  static Uint8List _buildCafeOrdersExcel(_CafeReportData report) {
+    final excel = Excel.createExcel();
+    final summarySheet = excel['Summary'];
+    _writeReportHeader(
+      summarySheet,
+      title: 'Cafe Orders Report',
+      subtitle: 'Finalized orders history only',
+      columnsCount: 4,
+    );
+    _setColumnWidths(summarySheet, [24, 18, 18, 18]);
+    _writeKeyValueTable(
+      summarySheet,
+      startRow: 3,
+      rows: [
+        ['Generated At', DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())],
+        ['Orders Count', report.orders.length.toString()],
+        [
+          'Orders Revenue',
+          _money(
+            report.orders.fold<double>(
+              0,
+              (sum, order) => sum + calculateOrderTotal(order),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final ordersSheet = excel['Orders'];
+    _writeReportHeader(
+      ordersSheet,
+      title: 'Cafe Orders Report - Orders',
+      subtitle: 'Finalized cafe orders',
+      columnsCount: 8,
+    );
+    _setColumnWidths(ordersSheet, [14, 14, 18, 20, 20, 18, 14, 14]);
+    _writeTableSection(
+      ordersSheet,
+      startRow: 3,
+      sectionTitle: 'Orders',
+      headers: const [
+        'Order ID',
+        'Type',
+        'Table',
+        'Customer',
+        'Staff',
+        'Payment',
+        'Items Count',
+        'Total',
+      ],
+      rows: report.orders
+          .map(
+            (order) => [
+              order.id,
+              order.orderType,
+              report.tableNameById(order.tableId) ?? '--',
+              order.customerName ?? '--',
+              order.staffName ?? '--',
+              normalizePaymentMethod(order.paymentMethod),
+              order.items.length.toString(),
+              _money(calculateOrderTotal(order)),
+            ],
+          )
+          .toList(),
+    );
+
+    final itemsSheet = excel['Order Items'];
+    _writeReportHeader(
+      itemsSheet,
+      title: 'Cafe Orders Report - Items',
+      subtitle: 'Items sold in finalized orders',
+      columnsCount: 5,
+    );
+    _setColumnWidths(itemsSheet, [14, 28, 12, 14, 14]);
+    final itemRows = <List<dynamic>>[];
+    for (final order in report.orders) {
+      for (final item in order.items) {
+        itemRows.add([
+          order.id,
+          item.itemName,
+          item.quantity.toString(),
+          _money(item.price),
+          _money(item.price * item.quantity),
+        ]);
+      }
+    }
+    _writeTableSection(
+      itemsSheet,
+      startRow: 3,
+      sectionTitle: 'Order Items',
+      headers: const [
+        'Order ID',
+        'Item',
+        'Quantity',
+        'Unit Price',
+        'Line Total',
+      ],
+      rows: itemRows,
+    );
+
+    final bytes = excel.encode();
+    return Uint8List.fromList(bytes ?? <int>[]);
+  }
+
+  static Future<Uint8List> _buildCafeOrdersPdf(_CafeReportData report) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.landscape,
+        build: (context) => [
+          pw.Header(level: 0, child: pw.Text('Cafe Orders Report')),
+          pw.TableHelper.fromTextArray(
+            data: [
+              [
+                'Generated At',
+                DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+              ],
+              ['Orders Count', report.orders.length.toString()],
+              [
+                'Orders Revenue',
+                _money(
+                  report.orders.fold<double>(
+                    0,
+                    (sum, order) => sum + calculateOrderTotal(order),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          pw.SizedBox(height: 18),
+          pw.Text(
+            'Orders',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
+          pw.TableHelper.fromTextArray(
+            headers: const [
+              'Order ID',
+              'Type',
+              'Table',
+              'Payment',
+              'Items Count',
+              'Total',
+            ],
+            data: report.orders
+                .map(
+                  (order) => [
+                    order.id,
+                    order.orderType,
+                    report.tableNameById(order.tableId) ?? '--',
+                    normalizePaymentMethod(order.paymentMethod),
+                    order.items.length.toString(),
+                    _money(calculateOrderTotal(order)),
+                  ],
+                )
+                .toList(),
+          ),
         ],
       ),
     );

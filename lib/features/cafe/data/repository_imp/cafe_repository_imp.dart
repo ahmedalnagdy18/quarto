@@ -72,6 +72,17 @@ class CafeRepositoryImp implements CafeRepository {
   }
 
   @override
+  Future<void> updateOrderPaymentMethod({
+    required String orderId,
+    required String paymentMethod,
+  }) async {
+    await supabase
+        .from('orders')
+        .update({'payment_method': paymentMethod})
+        .eq('id', orderId);
+  }
+
+  @override
   Future<String> addOrder(OrderModel order) async {
     final orderTypeCandidates = _orderTypeCandidates(order.orderType);
     PostgrestException? lastConstraintError;
@@ -108,6 +119,9 @@ class CafeRepositoryImp implements CafeRepository {
           'table_id': order.tableId,
           'customer_name': order.customerName,
           'staff_name': order.staffName,
+          'payment_method': order.paymentMethod.isEmpty
+              ? null
+              : order.paymentMethod,
         })
         .select()
         .single();

@@ -8,6 +8,7 @@ class OrderModel extends Equatable {
   final String? customerName;
   final String? staffName;
   final String orderTime;
+  final String paymentMethod;
   final List<OrderItemModel> items;
 
   const OrderModel({
@@ -17,6 +18,7 @@ class OrderModel extends Equatable {
     this.customerName,
     this.staffName,
     required this.orderTime,
+    required this.paymentMethod,
     required this.items,
   });
 
@@ -28,6 +30,7 @@ class OrderModel extends Equatable {
       customerName: json['customer_name']?.toString(),
       staffName: json['staff_name']?.toString(),
       orderTime: json['order_time']?.toString() ?? '',
+      paymentMethod: json['payment_method']?.toString() ?? '',
       items: (json['order_items'] as List? ?? [])
           .map((e) => OrderItemModel.fromJson(e))
           .toList(),
@@ -42,6 +45,7 @@ class OrderModel extends Equatable {
       'customer_name': customerName,
       'staff_name': staffName,
       'order_time': orderTime,
+      'payment_method': paymentMethod,
       'order_items': items.map((e) => e.toJson()).toList(),
     };
   }
@@ -54,6 +58,7 @@ class OrderModel extends Equatable {
     customerName,
     staffName,
     orderTime,
+    paymentMethod,
     items,
   ];
 }

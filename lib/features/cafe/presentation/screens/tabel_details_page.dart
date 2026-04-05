@@ -184,7 +184,9 @@ class _TabelDetailsPageState extends State<TabelDetailsPage> {
                         child: activeTableCard(
                           icon: Icons.payments_outlined,
                           title: 'Payment Method',
-                          widget: const VipWidget(title: 'Visa'),
+                          widget: VipWidget(
+                            title: normalizePaymentMethod(order?.paymentMethod),
+                          ),
                           data: '',
                         ),
                       ),

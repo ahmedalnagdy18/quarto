@@ -108,7 +108,11 @@ class _OrdersItemDetailsState extends State<OrdersItemDetails> {
                         child: activeTableCard(
                           icon: Icons.payments_outlined,
                           title: 'Payment Method',
-                          widget: const VipWidget(title: 'Cash'),
+                          widget: VipWidget(
+                            title: normalizePaymentMethod(
+                              widget.order.paymentMethod,
+                            ),
+                          ),
                           data: '',
                         ),
                       ),

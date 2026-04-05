@@ -46,6 +46,7 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
   final Map<String, int> _selectedItems = {};
   String _searchQuery = '';
   final TextEditingController _commentController = TextEditingController();
+  String _selectedPaymentMethod = 'Cash';
   bool _isLoading = false;
 
   bool get _isTableOrder => widget.orderType.toLowerCase() == 'table';
@@ -54,6 +55,9 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
 
   bool get _isUpdatingExistingOrder =>
       widget.existingOrderId != null && widget.existingOrderId!.isNotEmpty;
+
+  bool get _shouldChoosePaymentOnCreate =>
+      !_isTableOrder && !_isUpdatingExistingOrder;
 
   String get _normalizedOrderType {
     switch (widget.orderType.toLowerCase()) {
@@ -156,6 +160,9 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
               ? _commentController.text.trim()
               : null,
           orderTime: DateTime.now().toIso8601String(),
+          paymentMethod: _shouldChoosePaymentOnCreate
+              ? _selectedPaymentMethod.toLowerCase()
+              : '',
           items: _prepareOrders(),
         );
 
@@ -463,6 +470,39 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                                   ),
                                   const SizedBox(height: 20),
                                 ],
+                                if (_shouldChoosePaymentOnCreate) ...[
+                                  Text(
+                                    'Payment method',
+                                    style: AppTexts.smallHeading,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      _PaymentOptionChip(
+                                        label: 'Cash',
+                                        selected:
+                                            _selectedPaymentMethod == 'Cash',
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedPaymentMethod = 'Cash';
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(width: 12),
+                                      _PaymentOptionChip(
+                                        label: 'Visa',
+                                        selected:
+                                            _selectedPaymentMethod == 'Visa',
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedPaymentMethod = 'Visa';
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
                                 Text(
                                   'Order Summary',
                                   style: AppTexts.smallHeading,
@@ -587,6 +627,44 @@ class _RoomOrderDailogeWidgetState extends State<CafeOrderDailogeWidget> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentOptionChip extends StatelessWidget {
+  const _PaymentOptionChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.yellowColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? AppColors.yellowColor : Colors.white30,
+            width: 1.4,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.blueColor : Colors.white,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
