@@ -8,6 +8,7 @@ import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/data/model/cafe_tabels_model.dart';
 import 'package:quarto/features/cafe/data/model/order_model.dart';
 import 'package:quarto/features/cafe/domain/repository/cafe_repository.dart';
+import 'package:quarto/features/cafe/presentation/cubits/cafe_outcomes_cubit/cafe_outcomes_cubit.dart';
 import 'package:quarto/features/cafe/presentation/cubits/tabels_cubit/cafe_tables_cubit.dart';
 import 'package:quarto/features/cafe/presentation/screens/cafe_outcomes.dart';
 import 'package:quarto/features/cafe/presentation/screens/orders_details_page.dart';
@@ -33,6 +34,7 @@ class _CafeScreenState extends State<CafeScreen> {
   @override
   void initState() {
     super.initState();
+    context.read<CafeOutcomesCubit>().getCafeOutcomes();
     _loadCafeData();
   }
 
@@ -167,6 +169,7 @@ class _CafeScreenState extends State<CafeScreen> {
   }
 
   double? totalRevenue;
+  double? totalOutcomes;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -283,11 +286,25 @@ class _CafeScreenState extends State<CafeScreen> {
                         ),
                       ),
                       const SizedBox(width: 20),
-                      const Expanded(
-                        child: CardWidget(
-                          data: '20\$',
-                          title: 'Outcomes',
-                        ),
+                      Expanded(
+                        child:
+                            BlocBuilder<CafeOutcomesCubit, CafeOutcomesState>(
+                              builder: (context, state) {
+                                if (state is SuccessGetCafeOutcomes) {
+                                  final totalExpenses = state.data.fold<double>(
+                                    0,
+                                    (sum, item) =>
+                                        sum + (item.price * item.quantity),
+                                  );
+                                  totalOutcomes = totalExpenses;
+                                }
+                                return CardWidget(
+                                  data:
+                                      '${totalOutcomes?.toStringAsFixed(0)}\$',
+                                  title: 'Outcomes',
+                                );
+                              },
+                            ),
                       ),
                     ],
                   );

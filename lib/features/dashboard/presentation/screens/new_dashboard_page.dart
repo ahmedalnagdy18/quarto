@@ -117,7 +117,7 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                   ),
                   const SizedBox(width: 20),
                   ExportButtonsWidget(
-                    title: 'Orders',
+                    title: 'Start New Day',
                     icon: Icons.list_alt_outlined,
                     onPressed: () {},
                   ),

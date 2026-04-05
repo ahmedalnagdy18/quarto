@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:quarto/features/cafe/presentation/screens/cafe_screen.dart';
+import 'package:quarto/features/dashboard/presentation/screens/analytics_page.dart';
 import 'package:quarto/features/dashboard/presentation/screens/new_dashboard_page.dart';
 
 class MainAppPage extends StatefulWidget {
@@ -15,7 +16,7 @@ class _MainProjectPageState extends State<MainAppPage> {
   final List<Widget> pages = [
     const CafeScreen(),
     const NewDashboardPage(),
-    const CafeScreen(),
+    const AnalyticsPage(),
   ];
 
   int selectedIndex = 1;
