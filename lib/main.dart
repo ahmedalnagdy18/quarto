@@ -12,6 +12,7 @@ import 'package:quarto/features/dashboard/presentation/cubits/rooms/rooms_cubit.
 import 'package:quarto/features/dashboard/presentation/cubits/session_history/session_history_cubit.dart';
 import 'package:quarto/features/dashboard/presentation/screens/main_app_page.dart';
 import 'package:quarto/injection_container.dart';
+import 'package:quarto/mobile_analytics_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -115,8 +116,23 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: const MainAppPage(),
+        home: const _ResponsiveHomePage(),
       ),
     );
+  }
+}
+
+class _ResponsiveHomePage extends StatelessWidget {
+  const _ResponsiveHomePage();
+
+  static const double _mobileBreakpoint = 700;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width < _mobileBreakpoint) {
+      return const MobileAnalyticsPage();
+    }
+    return const MainAppPage();
   }
 }
