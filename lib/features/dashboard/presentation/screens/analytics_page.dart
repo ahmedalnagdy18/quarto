@@ -256,6 +256,30 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MetricCard(
+                            title: 'Cash Total',
+                            value: _currency(data.cafeCashRevenue),
+                            accent: const Color(0xFF4B7BFF),
+                            footer: 'Paid in cash',
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _MetricCard(
+                            title: 'Visa Total',
+                            value: _currency(data.cafeVisaRevenue),
+                            accent: const Color(0xFF34D1BF),
+                            footer: 'Paid by card',
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(child: SizedBox()),
+                      ],
+                    ),
                     const SizedBox(height: 18),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,6 +442,8 @@ class _AnalyticsSnapshot {
     required this.cafeRevenue,
     required this.cafeNetProfit,
     required this.cafeExpenses,
+    required this.cafeCashRevenue,
+    required this.cafeVisaRevenue,
     required this.hourlyPlayStationRevenue,
     required this.hourlyCafeRevenue,
     required this.cafeOrderDistribution,
@@ -443,6 +469,8 @@ class _AnalyticsSnapshot {
   final double cafeRevenue;
   final double cafeNetProfit;
   final double cafeExpenses;
+  final double cafeCashRevenue;
+  final double cafeVisaRevenue;
   final Map<int, double> hourlyPlayStationRevenue;
   final Map<int, double> hourlyCafeRevenue;
   final Map<String, double> cafeOrderDistribution;
@@ -520,10 +548,23 @@ class _AnalyticsSnapshot {
       (sum, item) => sum + (item.price * item.quantity),
     );
     final playStationNetProfit = playStationRevenue - roomExpenses;
-    final cafeRevenue = cafeOrders.fold<double>(
+    final finalizedOrders = finalizedCafeOrders(cafeOrders, cafeTables);
+    final cafeRevenue = finalizedOrders.fold<double>(
       0,
       (sum, order) => sum + calculateOrderTotal(order),
     );
+    final cafeCashRevenue = finalizedOrders
+        .where((order) => normalizePaymentMethod(order.paymentMethod) == 'Cash')
+        .fold<double>(
+          0,
+          (sum, order) => sum + calculateOrderTotal(order),
+        );
+    final cafeVisaRevenue = finalizedOrders
+        .where((order) => normalizePaymentMethod(order.paymentMethod) == 'Visa')
+        .fold<double>(
+          0,
+          (sum, order) => sum + calculateOrderTotal(order),
+        );
     final cafeExpenses = cafeOutcomes.fold<double>(
       0,
       (sum, item) => sum + (item.price * item.quantity),
@@ -548,7 +589,7 @@ class _AnalyticsSnapshot {
     };
     final topCafeItemsMap = <String, double>{};
 
-    for (final order in cafeOrders) {
+    for (final order in finalizedOrders) {
       final orderDate = DateTime.tryParse(order.orderTime)?.toLocal();
       if (orderDate != null) {
         hourlyCafeRevenue.update(
@@ -601,6 +642,8 @@ class _AnalyticsSnapshot {
       cafeRevenue: cafeRevenue,
       cafeNetProfit: cafeNetProfit,
       cafeExpenses: cafeExpenses,
+      cafeCashRevenue: cafeCashRevenue,
+      cafeVisaRevenue: cafeVisaRevenue,
       hourlyPlayStationRevenue: hourlyPlayStationRevenue,
       hourlyCafeRevenue: hourlyCafeRevenue,
       cafeOrderDistribution: cafeOrderDistribution,
@@ -608,7 +651,7 @@ class _AnalyticsSnapshot {
       topRooms: topRooms.take(5).toList(),
       consoleTypeRevenue: consoleTypeRevenue,
       rooms: rooms,
-      cafeOrderCount: cafeOrders.length,
+      cafeOrderCount: finalizedOrders.length,
       roomOutcomesCount: roomOutcomes.length,
       cafeOutcomesCount: cafeOutcomes.length,
     );

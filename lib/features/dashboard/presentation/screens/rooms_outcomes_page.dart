@@ -6,7 +6,6 @@ import 'package:quarto/core/common/app_button.dart';
 import 'package:quarto/core/fonts/app_text.dart';
 import 'package:quarto/features/cafe/presentation/utils/cafe_order_utils.dart';
 import 'package:quarto/features/dashboard/presentation/cubits/outcomes/outcomes_cubit.dart';
-import 'package:quarto/features/dashboard/presentation/widgets/button_widget.dart';
 import 'package:quarto/features/dashboard/presentation/widgets/card_widget.dart';
 
 class RoomsOutcomesPage extends StatefulWidget {
@@ -80,12 +79,12 @@ class _RoomsOutcomesPageState extends State<RoomsOutcomesPage> {
                         Row(
                           children: [
                             Image.asset('images/quarto_logo.png', scale: 4),
-                            const Spacer(),
-                            ExportButtonsWidget(
-                              title: 'Export Report',
-                              icon: Icons.download_outlined,
-                              onPressed: () {},
-                            ),
+                            // const Spacer(),
+                            // ExportButtonsWidget(
+                            //   title: 'Export Report',
+                            //   icon: Icons.download_outlined,
+                            //   onPressed: () {},
+                            // ),
                           ],
                         ),
                         const SizedBox(height: 16),

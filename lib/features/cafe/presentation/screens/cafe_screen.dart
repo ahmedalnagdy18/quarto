@@ -266,6 +266,8 @@ class _CafeScreenState extends State<CafeScreen> {
                   int freeTables = 0;
                   int occupiedTables = 0;
                   double todayIncome = 0.0;
+                  double cashTotal = 0.0;
+                  double visaTotal = 0.0;
 
                   if (state is SuccessGetTables) {
                     freeTables = state.tables
@@ -274,7 +276,30 @@ class _CafeScreenState extends State<CafeScreen> {
                     occupiedTables = state.tables
                         .where((t) => t.isOccupied)
                         .length;
-                    todayIncome = finalizedCafeOrders(_orders, state.tables)
+                    final finalizedOrders = finalizedCafeOrders(
+                      _orders,
+                      state.tables,
+                    );
+                    todayIncome = finalizedOrders.fold<double>(
+                      0,
+                      (total, order) => total + calculateOrderTotal(order),
+                    );
+                    cashTotal = finalizedOrders
+                        .where(
+                          (order) =>
+                              normalizePaymentMethod(order.paymentMethod) ==
+                              'Cash',
+                        )
+                        .fold<double>(
+                          0,
+                          (total, order) => total + calculateOrderTotal(order),
+                        );
+                    visaTotal = finalizedOrders
+                        .where(
+                          (order) =>
+                              normalizePaymentMethod(order.paymentMethod) ==
+                              'Visa',
+                        )
                         .fold<double>(
                           0,
                           (total, order) => total + calculateOrderTotal(order),
@@ -282,53 +307,90 @@ class _CafeScreenState extends State<CafeScreen> {
                     totalRevenue = todayIncome;
                   }
 
-                  return Row(
+                  return Column(
                     children: [
-                      Expanded(
-                        child: CardWidget(
-                          data: '$freeTables',
-                          title: 'Free tabels',
-                          cafeState: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: CardWidget(
-                          data: '$occupiedTables',
-                          title: 'Occupied tabels',
-                          cafeState: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: CardWidget(
-                          data: _isLoadingOrders
-                              ? '0\$'
-                              : '${todayIncome.toStringAsFixed(0)}\$',
-                          title: 'income',
-                          cafeState: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child:
-                            BlocBuilder<CafeOutcomesCubit, CafeOutcomesState>(
-                              builder: (context, state) {
-                                if (state is SuccessGetCafeOutcomes) {
-                                  final totalExpenses = state.data.fold<double>(
-                                    0,
-                                    (sum, item) =>
-                                        sum + (item.price * item.quantity),
-                                  );
-                                  totalOutcomes = totalExpenses;
-                                }
-                                return CardWidget(
-                                  data:
-                                      '${totalOutcomes?.toStringAsFixed(0)}\$',
-                                  title: 'Outcomes',
-                                );
-                              },
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CardWidget(
+                              data: '$freeTables',
+                              title: 'Free tabels',
+                              cafeState: state,
                             ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: '$occupiedTables',
+                              title: 'Occupied tabels',
+                              cafeState: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: _isLoadingOrders
+                                  ? '0\$'
+                                  : '${todayIncome.toStringAsFixed(0)}\$',
+                              title: 'income',
+                              cafeState: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child:
+                                BlocBuilder<
+                                  CafeOutcomesCubit,
+                                  CafeOutcomesState
+                                >(
+                                  builder: (context, state) {
+                                    if (state is SuccessGetCafeOutcomes) {
+                                      final totalExpenses = state.data
+                                          .fold<double>(
+                                            0,
+                                            (sum, item) =>
+                                                sum +
+                                                (item.price * item.quantity),
+                                          );
+                                      totalOutcomes = totalExpenses;
+                                    }
+                                    return CardWidget(
+                                      data:
+                                          '${totalOutcomes?.toStringAsFixed(0)}\$',
+                                      title: 'Outcomes',
+                                    );
+                                  },
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CardWidget(
+                              data: _isLoadingOrders
+                                  ? '0\$'
+                                  : '${cashTotal.toStringAsFixed(0)}\$',
+                              title: 'Cash total',
+                              cafeState: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: _isLoadingOrders
+                                  ? '0\$'
+                                  : '${visaTotal.toStringAsFixed(0)}\$',
+                              title: 'Visa total',
+                              cafeState: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          const Expanded(child: SizedBox()),
+                          const SizedBox(width: 20),
+                          const Expanded(child: SizedBox()),
+                        ],
                       ),
                     ],
                   );
