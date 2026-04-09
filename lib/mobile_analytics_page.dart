@@ -216,6 +216,23 @@ class _MobileAnalyticsPageState extends State<MobileAnalyticsPage> {
                     ],
                   ),
                   const SizedBox(height: 14),
+                  _MetricGrid(
+                    items: [
+                      _MetricItem(
+                        title: 'Cash Total',
+                        value: _currency(data.cafeCashRevenue),
+                        accent: const Color(0xFF4B7BFF),
+                        subtitle: 'Paid in cash',
+                      ),
+                      _MetricItem(
+                        title: 'Visa Total',
+                        value: _currency(data.cafeVisaRevenue),
+                        accent: const Color(0xFF34D1BF),
+                        subtitle: 'Paid by card',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   _InfoPanel(
                     title: 'Cafe Order Sources',
                     child: Column(
@@ -247,6 +264,25 @@ class _MobileAnalyticsPageState extends State<MobileAnalyticsPage> {
                     child: _RankingList(
                       items: data.topCafeItems,
                       suffix: 'orders',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _InfoPanel(
+                    title: 'Tables Status',
+                    child: Column(
+                      children: [
+                        _StatusGroup(
+                          title: 'Occupied Tables',
+                          names: data.occupiedTableNames,
+                          color: const Color(0xFF4B7BFF),
+                        ),
+                        const SizedBox(height: 14),
+                        _StatusGroup(
+                          title: 'Free Tables',
+                          names: data.freeTableNames,
+                          color: const Color(0xFF57E389),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -308,6 +344,25 @@ class _MobileAnalyticsPageState extends State<MobileAnalyticsPage> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  _InfoPanel(
+                    title: 'Rooms Status',
+                    child: Column(
+                      children: [
+                        _StatusGroup(
+                          title: 'Occupied Rooms',
+                          names: data.occupiedRoomNames,
+                          color: const Color(0xFF4B7BFF),
+                        ),
+                        const SizedBox(height: 14),
+                        _StatusGroup(
+                          title: 'Free Rooms',
+                          names: data.freeRoomNames,
+                          color: const Color(0xFF57E389),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
@@ -333,6 +388,8 @@ class _MobileAnalyticsSnapshot {
     required this.cafeRevenue,
     required this.cafeNetProfit,
     required this.cafeExpenses,
+    required this.cafeCashRevenue,
+    required this.cafeVisaRevenue,
     required this.cafeOrderDistribution,
     required this.topCafeItems,
     required this.topRooms,
@@ -342,8 +399,12 @@ class _MobileAnalyticsSnapshot {
     required this.roomOutcomesCount,
     required this.occupiedTables,
     required this.freeTables,
+    required this.occupiedTableNames,
+    required this.freeTableNames,
     required this.occupiedRooms,
     required this.freeRooms,
+    required this.occupiedRoomNames,
+    required this.freeRoomNames,
   });
 
   final String dayLabel;
@@ -359,6 +420,8 @@ class _MobileAnalyticsSnapshot {
   final double cafeRevenue;
   final double cafeNetProfit;
   final double cafeExpenses;
+  final double cafeCashRevenue;
+  final double cafeVisaRevenue;
   final Map<String, double> cafeOrderDistribution;
   final List<_RankedValue> topCafeItems;
   final List<_RankedValue> topRooms;
@@ -368,8 +431,12 @@ class _MobileAnalyticsSnapshot {
   final int roomOutcomesCount;
   final int occupiedTables;
   final int freeTables;
+  final List<String> occupiedTableNames;
+  final List<String> freeTableNames;
   final int occupiedRooms;
   final int freeRooms;
+  final List<String> occupiedRoomNames;
+  final List<String> freeRoomNames;
 
   factory _MobileAnalyticsSnapshot.fromData({
     required List<Room> rooms,
@@ -434,6 +501,18 @@ class _MobileAnalyticsSnapshot {
       0,
       (sum, order) => sum + calculateOrderTotal(order),
     );
+    final cafeCashRevenue = finalizedCafe
+        .where((order) => normalizePaymentMethod(order.paymentMethod) == 'Cash')
+        .fold<double>(
+          0,
+          (sum, order) => sum + calculateOrderTotal(order),
+        );
+    final cafeVisaRevenue = finalizedCafe
+        .where((order) => normalizePaymentMethod(order.paymentMethod) == 'Visa')
+        .fold<double>(
+          0,
+          (sum, order) => sum + calculateOrderTotal(order),
+        );
     final cafeExpenses = cafeOutcomes.fold<double>(
       0,
       (sum, item) => sum + (item.price * item.quantity),
@@ -502,6 +581,8 @@ class _MobileAnalyticsSnapshot {
       cafeRevenue: cafeRevenue,
       cafeNetProfit: cafeNetProfit,
       cafeExpenses: cafeExpenses,
+      cafeCashRevenue: cafeCashRevenue,
+      cafeVisaRevenue: cafeVisaRevenue,
       cafeOrderDistribution: cafeOrderDistribution,
       topCafeItems: topCafeItems.take(5).toList(),
       topRooms: topRooms.take(5).toList(),
@@ -511,8 +592,24 @@ class _MobileAnalyticsSnapshot {
       roomOutcomesCount: roomOutcomes.length,
       occupiedTables: cafeTables.where((table) => table.isOccupied).length,
       freeTables: cafeTables.where((table) => !table.isOccupied).length,
+      occupiedTableNames: cafeTables
+          .where((table) => table.isOccupied)
+          .map((table) => table.tableName)
+          .toList(),
+      freeTableNames: cafeTables
+          .where((table) => !table.isOccupied)
+          .map((table) => table.tableName)
+          .toList(),
       occupiedRooms: rooms.where((room) => room.isOccupied).length,
       freeRooms: rooms.where((room) => !room.isOccupied).length,
+      occupiedRoomNames: rooms
+          .where((room) => room.isOccupied)
+          .map((room) => room.name)
+          .toList(),
+      freeRoomNames: rooms
+          .where((room) => !room.isOccupied)
+          .map((room) => room.name)
+          .toList(),
     );
   }
 }
@@ -878,6 +975,65 @@ class _RankingList extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _StatusGroup extends StatelessWidget {
+  const _StatusGroup({
+    required this.title,
+    required this.names,
+    required this.color,
+  });
+
+  final String title;
+  final List<String> names;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeNames = names.isEmpty ? const ['None'] : names;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: safeNames
+              .map(
+                (name) => Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: color.withValues(alpha: 0.45)),
+                  ),
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
   }
 }
