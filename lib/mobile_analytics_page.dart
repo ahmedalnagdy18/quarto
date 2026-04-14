@@ -161,7 +161,7 @@ class _MobileAnalyticsPageState extends State<MobileAnalyticsPage> {
                         title: 'Total Revenue',
                         value: _currency(data.totalRevenue),
                         accent: AppColors.yellowColor,
-                        subtitle: 'Rooms + Cafe',
+                        subtitle: 'Rooms + room orders + cafe',
                       ),
                       _MetricItem(
                         title: 'Net Profit',
@@ -294,8 +294,19 @@ class _MobileAnalyticsPageState extends State<MobileAnalyticsPage> {
                         title: 'Rooms Income',
                         value: _currency(data.playStationRevenue),
                         accent: AppColors.yellowColor,
-                        subtitle: 'Session revenue',
+                        subtitle: 'Sessions + room orders',
                       ),
+                      _MetricItem(
+                        title: 'Room Orders',
+                        value: _currency(data.roomOrdersRevenue),
+                        accent: const Color(0xFF2F37FF),
+                        subtitle: 'Orders inside rooms',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _MetricGrid(
+                    items: [
                       _MetricItem(
                         title: 'Rooms Profit',
                         value: _currency(data.playStationNetProfit),
@@ -313,6 +324,23 @@ class _MobileAnalyticsPageState extends State<MobileAnalyticsPage> {
                         value: '${data.occupiedRooms}',
                         accent: const Color(0xFF4B7BFF),
                         subtitle: '${data.freeRooms} free',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _MetricGrid(
+                    items: [
+                      _MetricItem(
+                        title: 'Room Cash',
+                        value: _currency(data.roomCashRevenue),
+                        accent: const Color(0xFF4B7BFF),
+                        subtitle: 'Ended sessions paid in cash',
+                      ),
+                      _MetricItem(
+                        title: 'Room Visa',
+                        value: _currency(data.roomVisaRevenue),
+                        accent: const Color(0xFF34D1BF),
+                        subtitle: 'Ended sessions paid by card',
                       ),
                     ],
                   ),
@@ -383,8 +411,11 @@ class _MobileAnalyticsSnapshot {
     required this.activeUnits,
     required this.totalUnits,
     required this.playStationRevenue,
+    required this.roomOrdersRevenue,
     required this.playStationNetProfit,
     required this.roomExpenses,
+    required this.roomCashRevenue,
+    required this.roomVisaRevenue,
     required this.cafeRevenue,
     required this.cafeNetProfit,
     required this.cafeExpenses,
@@ -415,8 +446,11 @@ class _MobileAnalyticsSnapshot {
   final int activeUnits;
   final int totalUnits;
   final double playStationRevenue;
+  final double roomOrdersRevenue;
   final double playStationNetProfit;
   final double roomExpenses;
+  final double roomCashRevenue;
+  final double roomVisaRevenue;
   final double cafeRevenue;
   final double cafeNetProfit;
   final double cafeExpenses;
@@ -455,27 +489,37 @@ class _MobileAnalyticsSnapshot {
     final consoleTypeRevenue = <String, double>{'ps4': 0, 'ps5': 0};
 
     var endedPlayStationRevenue = 0.0;
+    var endedRoomOrdersRevenue = 0.0;
+    var roomCashRevenue = 0.0;
+    var roomVisaRevenue = 0.0;
     for (final session in endedSessions) {
-      final sessionFee = math.max(
-        0.0,
-        session.totalCost - session.ordersTotal,
-      );
-      endedPlayStationRevenue += sessionFee;
+      final ordersRevenue = session.ordersTotal.clamp(0.0, session.totalCost);
+      endedPlayStationRevenue += session.totalCost;
+      endedRoomOrdersRevenue += ordersRevenue;
       roomRevenueById.update(
         session.roomId,
-        (value) => value + sessionFee,
-        ifAbsent: () => sessionFee,
+        (value) => value + session.totalCost,
+        ifAbsent: () => session.totalCost,
       );
+      final paymentMethod = _normalizeRoomPaymentMethod(session.paymentMethod);
+      if (paymentMethod == 'Cash') {
+        roomCashRevenue += session.totalCost;
+      } else if (paymentMethod == 'Visa') {
+        roomVisaRevenue += session.totalCost;
+      }
       final key = (session.psType ?? '').toLowerCase();
       if (consoleTypeRevenue.containsKey(key)) {
-        consoleTypeRevenue[key] = (consoleTypeRevenue[key] ?? 0) + sessionFee;
+        consoleTypeRevenue[key] =
+            (consoleTypeRevenue[key] ?? 0) + session.totalCost;
       }
     }
 
     var activePlayStationRevenue = 0.0;
+    var activeRoomOrdersRevenue = 0.0;
     for (final room in rooms.where((room) => room.isOccupied)) {
-      final activeRevenue = room.calculatedCost;
+      final activeRevenue = room.calculatedCost + room.ordersTotal;
       activePlayStationRevenue += activeRevenue;
+      activeRoomOrdersRevenue += room.ordersTotal;
       roomRevenueById.update(
         room.id,
         (value) => value + activeRevenue,
@@ -490,6 +534,7 @@ class _MobileAnalyticsSnapshot {
 
     final playStationRevenue =
         endedPlayStationRevenue + activePlayStationRevenue;
+    final roomOrdersRevenue = endedRoomOrdersRevenue + activeRoomOrdersRevenue;
     final roomExpenses = roomOutcomes.fold<double>(
       0,
       (sum, item) => sum + (item.price * item.quantity),
@@ -576,8 +621,11 @@ class _MobileAnalyticsSnapshot {
       activeUnits: activeUnits,
       totalUnits: totalUnits,
       playStationRevenue: playStationRevenue,
+      roomOrdersRevenue: roomOrdersRevenue,
       playStationNetProfit: playStationNetProfit,
       roomExpenses: roomExpenses,
+      roomCashRevenue: roomCashRevenue,
+      roomVisaRevenue: roomVisaRevenue,
       cafeRevenue: cafeRevenue,
       cafeNetProfit: cafeNetProfit,
       cafeExpenses: cafeExpenses,
@@ -1064,3 +1112,14 @@ class _MobileSectionTitle extends StatelessWidget {
 }
 
 String _currency(double value) => '${value.toStringAsFixed(0)} EGP';
+
+String _normalizeRoomPaymentMethod(String? value) {
+  switch ((value ?? '').trim().toLowerCase()) {
+    case 'visa':
+      return 'Visa';
+    case 'cash':
+      return 'Cash';
+    default:
+      return '--';
+  }
+}
