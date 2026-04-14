@@ -76,9 +76,11 @@ class NewRoomCardWidget extends StatelessWidget {
     super.key,
     required this.room,
     this.onMove,
+    this.onEnd,
   });
   final Room room;
   final VoidCallback? onMove;
+  final VoidCallback? onEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +199,7 @@ class NewRoomCardWidget extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        context.read<RoomsCubit>().endSession(currentRoom.id);
+                        onEnd?.call();
                       },
                       icon: const Icon(
                         Icons.stop,

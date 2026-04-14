@@ -143,6 +143,37 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
     }
   }
 
+  Future<void> _endRoomSession(Room room) async {
+    if (!room.isOccupied) {
+      _showMessage('No active session found for this room.');
+      return;
+    }
+
+    final roomsCubit = context.read<RoomsCubit>();
+    final dashboardCubit = context.read<DashboardCubit>();
+    final paymentMethod = await showDialog<String>(
+      context: context,
+      builder: (context) => _RoomFinalPaymentDialog(room: room),
+    );
+
+    if (paymentMethod == null || paymentMethod.isEmpty) {
+      return;
+    }
+
+    try {
+      await roomsCubit.endSession(
+        room.id,
+        paymentMethod: paymentMethod.toLowerCase(),
+      );
+      if (!mounted) {
+        return;
+      }
+      await dashboardCubit.loadDashboardStats();
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
   double? totalRevenue;
   double? totalOutcomess;
 
@@ -217,67 +248,106 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                   int occupiedRooms = 0;
                   double roomsIncome = 0.0;
                   double ordersIncome = 0.0;
+                  double roomCashTotal = 0.0;
+                  double roomVisaTotal = 0.0;
 
                   if (state is DashboardLoaded) {
                     freeRooms = state.totalFreeRooms;
                     occupiedRooms = state.totalOccupiedRooms;
                     roomsIncome = state.roomsIncome;
                     ordersIncome = state.ordersIncome;
+                    roomCashTotal = state.roomCashTotal;
+                    roomVisaTotal = state.roomVisaTotal;
                     totalRevenue = state.totalIncome;
                   }
-                  return Row(
+                  return Column(
                     children: [
-                      Expanded(
-                        child: CardWidget(
-                          data: '$freeRooms',
-                          title: 'Free rooms',
-                          state: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: CardWidget(
-                          data: '$occupiedRooms',
-                          title: 'Occupied rooms',
-                          state: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: CardWidget(
-                          data: '${roomsIncome.toStringAsFixed(0)}\$',
-                          title: 'Rooms income',
-                          state: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: CardWidget(
-                          data: '${ordersIncome.toStringAsFixed(0)}\$',
-                          title: 'Orders income',
-                          state: state,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child:
-                            BlocBuilder<RoomOutcomesCubit, RoomOutcomesState>(
-                              builder: (context, state) {
-                                if (state is SuccessGetOutcomes) {
-                                  final totalOutcomes = state.data.fold<double>(
-                                    0,
-                                    (sum, item) =>
-                                        sum + (item.price * item.quantity),
-                                  );
-                                  totalOutcomess = totalOutcomes;
-                                }
-                                return CardWidget(
-                                  data:
-                                      '${totalOutcomess?.toStringAsFixed(0)}\$',
-                                  title: 'Outcomes',
-                                );
-                              },
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CardWidget(
+                              data: '$freeRooms',
+                              title: 'Free rooms',
+                              state: state,
                             ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: '$occupiedRooms',
+                              title: 'Occupied rooms',
+                              state: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: '${roomsIncome.toStringAsFixed(0)}\$',
+                              title: 'Rooms income',
+                              state: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: '${ordersIncome.toStringAsFixed(0)}\$',
+                              title: 'Orders income',
+                              state: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child:
+                                BlocBuilder<
+                                  RoomOutcomesCubit,
+                                  RoomOutcomesState
+                                >(
+                                  builder: (context, state) {
+                                    if (state is SuccessGetOutcomes) {
+                                      final totalOutcomes = state.data
+                                          .fold<double>(
+                                            0,
+                                            (sum, item) =>
+                                                sum +
+                                                (item.price * item.quantity),
+                                          );
+                                      totalOutcomess = totalOutcomes;
+                                    }
+                                    return CardWidget(
+                                      data:
+                                          '${totalOutcomess?.toStringAsFixed(0)}\$',
+                                      title: 'Outcomes',
+                                    );
+                                  },
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: CardWidget(
+                              data: '${roomCashTotal.toStringAsFixed(0)}\$',
+                              title: 'Cash total',
+                              state: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: CardWidget(
+                              data: '${roomVisaTotal.toStringAsFixed(0)}\$',
+                              title: 'Visa total',
+                              state: state,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          const Expanded(child: SizedBox()),
+                          const SizedBox(width: 20),
+                          const Expanded(child: SizedBox()),
+                          const SizedBox(width: 20),
+                          const Expanded(child: SizedBox()),
+                        ],
                       ),
                     ],
                   );
@@ -320,6 +390,9 @@ class _NewDashboardPageState extends State<NewDashboardPage> {
                             },
                             child: NewRoomCardWidget(
                               room: state.rooms[index],
+                              onEnd: state.rooms[index].isOccupied
+                                  ? () => _endRoomSession(state.rooms[index])
+                                  : null,
                               onMove: state.rooms[index].isOccupied
                                   ? () => _moveRoom(
                                       state.rooms[index],
@@ -521,6 +594,226 @@ class _MoveRoomDialogState extends State<_MoveRoomDialog> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomFinalPaymentDialog extends StatefulWidget {
+  const _RoomFinalPaymentDialog({required this.room});
+
+  final Room room;
+
+  @override
+  State<_RoomFinalPaymentDialog> createState() =>
+      _RoomFinalPaymentDialogState();
+}
+
+class _RoomFinalPaymentDialogState extends State<_RoomFinalPaymentDialog> {
+  String _selectedPaymentMethod = 'Cash';
+
+  @override
+  Widget build(BuildContext context) {
+    final totalCost = widget.room.calculatedCost + widget.room.ordersTotal;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 410,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: const Color(0xFF11133E),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white30),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Final Payment',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.close, color: Colors.white),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Choose how this room session will be paid before closing it.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Total cost : ${totalCost.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: AppColors.yellowColor,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Payment method',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _RoomPaymentMethodChoice(
+                  label: 'Cash',
+                  selected: _selectedPaymentMethod == 'Cash',
+                  onTap: () {
+                    setState(() {
+                      _selectedPaymentMethod = 'Cash';
+                    });
+                  },
+                ),
+                const SizedBox(width: 12),
+                _RoomPaymentMethodChoice(
+                  label: 'Visa',
+                  selected: _selectedPaymentMethod == 'Visa',
+                  onTap: () {
+                    setState(() {
+                      _selectedPaymentMethod = 'Visa';
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Session Summary',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Session time',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                Text(
+                  '${widget.room.calculatedCost.toStringAsFixed(0)} EGP',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Orders',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                Text(
+                  '${widget.room.ordersTotal.toStringAsFixed(0)} EGP',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+            const Divider(height: 28, color: Colors.white24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '${totalCost.toStringAsFixed(0)} EGP',
+                  style: TextStyle(
+                    color: AppColors.yellowColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.blueColor,
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: AppColors.yellowColor, width: 3),
+                  shape: ContinuousRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 26,
+                    vertical: 12,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context, _selectedPaymentMethod);
+                },
+                child: const Text('Submit'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomPaymentMethodChoice extends StatelessWidget {
+  const _RoomPaymentMethodChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.yellowColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? AppColors.yellowColor : Colors.white30,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.blueColor : Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

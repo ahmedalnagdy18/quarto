@@ -368,12 +368,40 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         const SizedBox(width: 14),
                         Expanded(
                           child: _MetricCard(
+                            title: 'Cash Total',
+                            value: _currency(data.roomCashRevenue),
+                            accent: const Color(0xFF4B7BFF),
+                            footer: 'Ended sessions paid in cash',
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _MetricCard(
+                            title: 'Visa Total',
+                            value: _currency(data.roomVisaRevenue),
+                            accent: const Color(0xFF34D1BF),
+                            footer: 'Ended sessions paid by card',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MetricCard(
                             title: 'Expenses',
                             value: _currency(data.roomExpenses),
                             accent: const Color(0xFFFF8A65),
                             footer: '${data.roomOutcomesCount} expense records',
                           ),
                         ),
+                        const SizedBox(width: 14),
+                        const Expanded(child: SizedBox()),
+                        const SizedBox(width: 14),
+                        const Expanded(child: SizedBox()),
+                        const SizedBox(width: 14),
+                        const Expanded(child: SizedBox()),
                       ],
                     ),
                     const SizedBox(height: 18),
@@ -439,6 +467,8 @@ class _AnalyticsSnapshot {
     required this.playStationRevenue,
     required this.playStationNetProfit,
     required this.roomExpenses,
+    required this.roomCashRevenue,
+    required this.roomVisaRevenue,
     required this.cafeRevenue,
     required this.cafeNetProfit,
     required this.cafeExpenses,
@@ -466,6 +496,8 @@ class _AnalyticsSnapshot {
   final double playStationRevenue;
   final double playStationNetProfit;
   final double roomExpenses;
+  final double roomCashRevenue;
+  final double roomVisaRevenue;
   final double cafeRevenue;
   final double cafeNetProfit;
   final double cafeExpenses;
@@ -500,9 +532,19 @@ class _AnalyticsSnapshot {
     final consoleTypeRevenue = <String, double>{'ps5': 0, 'ps4': 0};
     final hourlyPlayStationRevenue = <int, double>{};
     double endedPlayStationRevenue = 0.0;
+    double roomCashRevenue = 0.0;
+    double roomVisaRevenue = 0.0;
 
     for (final session in endedSessions) {
       endedPlayStationRevenue += session.totalCost;
+      final normalizedPayment = _normalizeRoomPaymentMethod(
+        session.paymentMethod,
+      );
+      if (normalizedPayment == 'Cash') {
+        roomCashRevenue += session.totalCost;
+      } else if (normalizedPayment == 'Visa') {
+        roomVisaRevenue += session.totalCost;
+      }
       roomRevenueById.update(
         session.roomId,
         (value) => value + session.totalCost,
@@ -639,6 +681,8 @@ class _AnalyticsSnapshot {
       playStationRevenue: playStationRevenue,
       playStationNetProfit: playStationNetProfit,
       roomExpenses: roomExpenses,
+      roomCashRevenue: roomCashRevenue,
+      roomVisaRevenue: roomVisaRevenue,
       cafeRevenue: cafeRevenue,
       cafeNetProfit: cafeNetProfit,
       cafeExpenses: cafeExpenses,
@@ -1186,3 +1230,14 @@ class _DonutPainter extends CustomPainter {
 }
 
 String _currency(double value) => '${value.toStringAsFixed(0)}\$';
+
+String _normalizeRoomPaymentMethod(String? value) {
+  switch ((value ?? '').trim().toLowerCase()) {
+    case 'visa':
+      return 'Visa';
+    case 'cash':
+      return 'Cash';
+    default:
+      return '--';
+  }
+}

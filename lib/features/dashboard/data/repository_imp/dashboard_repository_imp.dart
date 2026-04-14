@@ -33,20 +33,32 @@ class DashboardRepositoryImp implements DashboardRepository {
 
       final sessions = await supabase
           .from('session_history')
-          .select('total_cost, orders')
+          .select('total_cost, orders, payment_method')
           .not('end_time', 'is', null);
 
       double roomsIncome = 0.0;
       double ordersIncome = 0.0;
+      double roomCashTotal = 0.0;
+      double roomVisaTotal = 0.0;
 
       for (final session in sessions) {
         final totalCost = (session['total_cost'] as num?)?.toDouble() ?? 0.0;
-        final ordersCost = (session['orders'] as num?)?.toDouble() ?? 0.0;
-        final sessionOnlyIncome = totalCost - ordersCost;
+        final rawOrdersCost = (session['orders'] as num?)?.toDouble() ?? 0.0;
+        final ordersCost = rawOrdersCost.clamp(0.0, totalCost);
+        final sessionOnlyIncome = (totalCost - ordersCost).clamp(
+          0.0,
+          double.infinity,
+        );
+        final paymentMethod = _normalizePaymentMethod(
+          session['payment_method']?.toString(),
+        );
 
         ordersIncome += ordersCost;
-        if (sessionOnlyIncome > 0) {
-          roomsIncome += sessionOnlyIncome;
+        roomsIncome += sessionOnlyIncome;
+        if (paymentMethod == 'cash') {
+          roomCashTotal += totalCost;
+        } else if (paymentMethod == 'visa') {
+          roomVisaTotal += totalCost;
         }
       }
 
@@ -56,6 +68,8 @@ class DashboardRepositoryImp implements DashboardRepository {
         'freeRooms': freeRooms,
         'roomsIncome': roomsIncome,
         'ordersIncome': ordersIncome,
+        'roomCashTotal': roomCashTotal,
+        'roomVisaTotal': roomVisaTotal,
         'todayIncome': roomsIncome + ordersIncome,
         'rooms': rooms,
       };
@@ -234,7 +248,10 @@ class DashboardRepositoryImp implements DashboardRepository {
   }
 
   @override
-  Future<void> endSession(String roomId) async {
+  Future<void> endSession(
+    String roomId, {
+    required String paymentMethod,
+  }) async {
     try {
       final now = DateTime.now().toUtc();
       final room = await getRoom(roomId);
@@ -290,6 +307,7 @@ class DashboardRepositoryImp implements DashboardRepository {
             'end_time': now.toIso8601String(),
             'total_cost': totalCost,
             'orders': existingOrdersCost,
+            'payment_method': _normalizePaymentMethod(paymentMethod),
             'updated_at': now.toIso8601String(),
           })
           .eq('id', activeSession['id']);
@@ -309,6 +327,16 @@ class DashboardRepositoryImp implements DashboardRepository {
     final duration = end.difference(start);
     final hours = duration.inMinutes / 60.0;
     return hours * hourlyRate;
+  }
+
+  String _normalizePaymentMethod(String? paymentMethod) {
+    switch ((paymentMethod ?? '').trim().toLowerCase()) {
+      case 'visa':
+        return 'visa';
+      case 'cash':
+      default:
+        return 'cash';
+    }
   }
 
   Future<Map<String, dynamic>?> _getActiveSession(String roomId) async {
@@ -347,7 +375,7 @@ class DashboardRepositoryImp implements DashboardRepository {
         try {
           if (room.isOccupied && room.sessionStart != null) {
             try {
-              await endSession(room.id);
+              await endSession(room.id, paymentMethod: 'cash');
             } catch (e) {}
           }
 

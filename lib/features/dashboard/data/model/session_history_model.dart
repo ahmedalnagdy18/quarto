@@ -13,6 +13,7 @@ class SessionHistory {
   final bool? isMulti;
   final double? orders; // مجموع الأوردرات
   final List<OrderItem> ordersList;
+  final String paymentMethod;
 
   SessionHistory({
     required this.id,
@@ -26,6 +27,7 @@ class SessionHistory {
     this.isMulti,
     this.orders,
     this.ordersList = const [],
+    required this.paymentMethod,
   });
 
   factory SessionHistory.fromJson(Map<String, dynamic> json) {
@@ -70,6 +72,7 @@ class SessionHistory {
       isMulti: json['is_multi'] as bool?,
       orders: (json['orders'] as num?)?.toDouble() ?? 0,
       ordersList: parseOrders(json['orders_items']),
+      paymentMethod: json['payment_method']?.toString() ?? '',
     );
   }
 

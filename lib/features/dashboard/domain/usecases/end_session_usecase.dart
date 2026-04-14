@@ -5,7 +5,13 @@ class EndSessionUsecase {
 
   EndSessionUsecase({required this.repository});
 
-  Future<void> call({required String roomId}) async {
-    return await repository.endSession(roomId);
+  Future<void> call({
+    required String roomId,
+    required String paymentMethod,
+  }) async {
+    return await repository.endSession(
+      roomId,
+      paymentMethod: paymentMethod,
+    );
   }
 }

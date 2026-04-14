@@ -9,7 +9,7 @@ class Room {
   final bool? isMulti;
   final double? orders; // مجموع الأوردرات
   final List<OrderItem> ordersList; // الأصناف نفسها
-
+  final String paymentMethod;
   Room({
     required this.id,
     required this.name,
@@ -21,6 +21,7 @@ class Room {
     this.isMulti,
     this.orders,
     this.ordersList = const [],
+    required this.paymentMethod,
   });
 
   factory Room.fromJson(Map<String, dynamic> json) {
@@ -55,6 +56,7 @@ class Room {
       isMulti: json['is_multi'] as bool?,
       orders: (json['orders'] as num?)?.toDouble() ?? 0,
       ordersList: parseOrders(json['orders_items']),
+      paymentMethod: json['payment_method']?.toString() ?? '',
     );
   }
 

@@ -137,14 +137,23 @@ class SessionDetailsPage extends StatelessWidget {
                     const SizedBox(width: 20),
                     Expanded(
                       flex: 1,
+                      child: activeSessionCard(
+                        icon: Icons.account_balance_wallet_outlined,
+                        title: 'Payment',
+                        data: _displaySessionPaymentMethod(
+                          history.paymentMethod,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      flex: 1,
                       child: totalSessionCard(
                         icon: Icons.euro,
                         title: 'Total',
                         data: '${totalCost.toStringAsFixed(0)} \$',
                       ),
                     ),
-                    const SizedBox(width: 20),
-                    const Spacer(flex: 1),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -332,4 +341,15 @@ Widget totalSessionCard({
       ],
     ),
   );
+}
+
+String _displaySessionPaymentMethod(String? value) {
+  switch ((value ?? '').trim().toLowerCase()) {
+    case 'visa':
+      return 'Visa';
+    case 'cash':
+      return 'Cash';
+    default:
+      return '--';
+  }
 }

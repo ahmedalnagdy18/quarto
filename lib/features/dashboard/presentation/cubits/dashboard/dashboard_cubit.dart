@@ -24,6 +24,8 @@ class DashboardCubit extends Cubit<DashboardState> {
           totalOccupiedRooms: stats['occupiedRooms'] as int? ?? 0,
           roomsIncome: stats['roomsIncome'] as double? ?? 0.0,
           ordersIncome: stats['ordersIncome'] as double? ?? 0.0,
+          roomCashTotal: stats['roomCashTotal'] as double? ?? 0.0,
+          roomVisaTotal: stats['roomVisaTotal'] as double? ?? 0.0,
           totalIncome: stats['todayIncome'] as double? ?? 0.0,
         ),
       );
@@ -43,6 +45,8 @@ class DashboardCubit extends Cubit<DashboardState> {
           totalOccupiedRooms: 0,
           roomsIncome: 0.0,
           ordersIncome: 0.0,
+          roomCashTotal: 0.0,
+          roomVisaTotal: 0.0,
           totalIncome: 0.0,
         ),
       );

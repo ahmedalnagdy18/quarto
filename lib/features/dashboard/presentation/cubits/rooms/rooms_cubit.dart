@@ -59,9 +59,15 @@ class RoomsCubit extends Cubit<RoomsState> {
     }
   }
 
-  Future<void> endSession(String roomId) async {
+  Future<void> endSession(
+    String roomId, {
+    required String paymentMethod,
+  }) async {
     try {
-      await endSessionUsecase(roomId: roomId);
+      await endSessionUsecase(
+        roomId: roomId,
+        paymentMethod: paymentMethod,
+      );
       await loadRoomsAndStats();
     } catch (e) {
       emit(RoomsError(e.toString()));

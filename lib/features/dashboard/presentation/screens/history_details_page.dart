@@ -290,6 +290,12 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
                               'Duration',
                               widget.sessionHistory.formattedDuration,
                             ),
+                            _row(
+                              'Payment',
+                              _displayHistoryPaymentMethod(
+                                widget.sessionHistory.paymentMethod,
+                              ),
+                            ),
                             if (widget
                                 .sessionHistory
                                 .sessionTypeInfo
@@ -596,5 +602,16 @@ class _HistoryDetailsPageState extends State<HistoryDetailsPage> {
         ],
       ),
     );
+  }
+}
+
+String _displayHistoryPaymentMethod(String? value) {
+  switch ((value ?? '').trim().toLowerCase()) {
+    case 'visa':
+      return 'Visa';
+    case 'cash':
+      return 'Cash';
+    default:
+      return '--';
   }
 }

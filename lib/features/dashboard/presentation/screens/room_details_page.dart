@@ -600,6 +600,10 @@ Widget _buildHistoryTable(
             headingRowAlignment: MainAxisAlignment.center,
           ),
           DataColumn(
+            label: Text('Payment'),
+            headingRowAlignment: MainAxisAlignment.center,
+          ),
+          DataColumn(
             label: Text('Details'),
             headingRowAlignment: MainAxisAlignment.center,
           ),
@@ -644,6 +648,14 @@ Widget _buildHistoryTable(
                     style: const TextStyle(
                       color: Colors.white,
                     ),
+                  ),
+                ),
+              ),
+              DataCell(
+                Center(
+                  child: Text(
+                    _displayPaymentMethod(session.paymentMethod),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ),
@@ -699,4 +711,15 @@ Widget _buildHistoryTable(
       ),
     ),
   );
+}
+
+String _displayPaymentMethod(String? value) {
+  switch ((value ?? '').trim().toLowerCase()) {
+    case 'visa':
+      return 'Visa';
+    case 'cash':
+      return 'Cash';
+    default:
+      return '--';
+  }
 }

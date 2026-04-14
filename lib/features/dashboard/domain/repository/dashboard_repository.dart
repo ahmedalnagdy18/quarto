@@ -13,7 +13,7 @@ abstract class DashboardRepository {
     double? hourlyRate,
   });
 
-  Future<void> endSession(String roomId);
+  Future<void> endSession(String roomId, {required String paymentMethod});
   Future<void> moveRoomSession({
     required String fromRoomId,
     required String toRoomId,
