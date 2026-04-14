@@ -28,26 +28,26 @@ class _SessionTypeDialogState extends State<SessionTypeDialog> {
     if (widget.isRoom8) {
       // Room 8 special pricing
       if (_selectedPsType == 'ps4') {
-        return _isMulti! ? 100.0 : 60.0;
+        return _isMulti! ? 110.0 : 70.0;
       } else {
         // ps5
-        return _isMulti! ? 130.0 : 90.0;
+        return _isMulti! ? 140.0 : 100.0;
       }
     } else if (widget.isVip) {
       // VIP rooms pricing
       if (_selectedPsType == 'ps4') {
-        return _isMulti! ? 110.0 : 80.0;
+        return _isMulti! ? 120.0 : 90.0;
       } else {
         // ps5
-        return _isMulti! ? 140.0 : 120.0;
+        return _isMulti! ? 150.0 : 130.0;
       }
     } else {
       // Non-VIP rooms pricing
       if (_selectedPsType == 'ps4') {
-        return _isMulti! ? 80.0 : 50.0;
+        return _isMulti! ? 90.0 : 60.0;
       } else {
         // ps5
-        return _isMulti! ? 100.0 : 70.0;
+        return _isMulti! ? 110.0 : 80.0;
       }
     }
   }

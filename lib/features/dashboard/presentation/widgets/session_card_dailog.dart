@@ -32,21 +32,21 @@ class _SessionCardDailogState extends State<SessionCardDailog> {
 
     if (widget.isRoom8) {
       if (type == 'ps4') {
-        return gameMode == 'Multi' ? 100.0 : 60.0;
+        return gameMode == 'Multi' ? 110.0 : 70.0;
       } else {
-        return gameMode == 'Multi' ? 130.0 : 90.0;
+        return gameMode == 'Multi' ? 140.0 : 100.0;
       }
     } else if (widget.isVip) {
       if (type == 'ps4') {
-        return gameMode == 'Multi' ? 110.0 : 80.0;
+        return gameMode == 'Multi' ? 120.0 : 90.0;
       } else {
-        return gameMode == 'Multi' ? 140.0 : 120.0;
+        return gameMode == 'Multi' ? 150.0 : 130.0;
       }
     } else {
       if (type == 'ps4') {
-        return gameMode == 'Multi' ? 80.0 : 50.0;
+        return gameMode == 'Multi' ? 90.0 : 60.0;
       } else {
-        return gameMode == 'Multi' ? 100.0 : 70.0;
+        return gameMode == 'Multi' ? 110.0 : 80.0;
       }
     }
   }
